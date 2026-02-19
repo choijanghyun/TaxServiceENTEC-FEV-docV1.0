@@ -3,10 +3,10 @@
 > **Summary**: 전자신고 파일 오류검증 시스템의 상세 설계서 (아키텍처, 클래스 설계, API 명세, DB 상세, 검증 파이프라인)
 >
 > **Project**: TaxServiceENTEC-FEV (Tax File Conversion Error Validation)
-> **Version**: 1.0.0
+> **Version**: 1.2.0
 > **Author**: Claude
 > **Date**: 2026-02-19
-> **Status**: Draft
+> **Status**: Reviewed
 > **Planning Doc**: [tax-file-error-validation.plan.md](../../01-plan/features/tax-file-error-validation.plan.md)
 
 ### Pipeline References
@@ -68,13 +68,16 @@
 │  [Presentation Layer]                                                │
 │  ┌──────────────────────────────────────────────────────┐           │
 │  │  REST Controllers                                     │           │
-│  │  ├─ ValidationController   (파일 검증 API)             │           │
-│  │  ├─ ReportController       (리포트 API)                │           │
-│  │  ├─ AdminRuleController    (규칙 관리 API)             │           │
-│  │  ├─ AdminLayoutController  (레이아웃 관리 API)          │           │
-│  │  ├─ AdminCodeController    (코드/세율 관리 API)         │           │
-│  │  ├─ DashboardController    (모니터링 API)              │           │
-│  │  └─ AuthController         (인증 API)                  │           │
+│  │  ├─ ValidationController        (파일 검증 API)        │           │
+│  │  ├─ ReportController            (리포트 API)           │           │
+│  │  ├─ AdminRuleController         (규칙 관리 API)        │           │
+│  │  ├─ AdminFormCodeController     (서식코드 관리 API)     │           │
+│  │  ├─ AdminErrorCodeController    (오류코드 관리 API)     │           │
+│  │  ├─ AdminLayoutController       (레이아웃 관리 API)     │           │
+│  │  ├─ AdminCodeController         (공통코드 관리 API)     │           │
+│  │  ├─ AdminDeductionController    (공제한도 관리 API)     │           │
+│  │  ├─ DashboardController         (모니터링 API)         │           │
+│  │  └─ AuthController              (인증 API)             │           │
 │  └──────────────────────────────────────────────────────┘           │
 │                              │                                       │
 │  [Application Layer]                                                 │
@@ -187,8 +190,21 @@
 ## 3. Data Model
 
 > 전체 DDL은 [schema.md](../../01-plan/schema.md) 참조. 본 섹션에서는 JPA 엔티티 설계와 관계를 정의.
+>
+> **Clean Architecture Note**: 아래 JPA Entity 클래스들은 `infrastructure/persistence/entity/` 패키지에 위치합니다.
+> Domain Layer에서는 JPA 어노테이션이 없는 순수 POJO 도메인 모델(`domain/model/`)을 사용하며,
+> Infrastructure Layer의 Mapper를 통해 JPA Entity ↔ Domain Model 간 변환합니다.
+> 이를 통해 도메인 로직이 JPA/Spring 프레임워크에 의존하지 않는 Clean Architecture 원칙을 준수합니다.
 
-### 3.1 JPA Entity 설계
+### 3.1 JPA Entity 설계 (infrastructure/persistence/entity/)
+
+> **엔티티 명명 규칙**: Section 3에서는 편의상 `TaxType`, `ValidationRule` 등으로 표기하나,
+> 실제 `infrastructure/persistence/entity/` 패키지에서는 `TaxTypeEntity`, `ValidationRuleEntity` 등
+> `Entity` 접미사를 붙여 Domain POJO와 구분합니다.
+>
+> **BaseEntity 상속**: HIS_VALIDATION_LOG, HIS_RULE_CHANGE, RES_VALIDATION_DETAIL은
+> 이력/상세 테이블로 `chg_dt`/`chg_id` 감사 컬럼이 불필요하여 BaseEntity를 상속하지 않고
+> `reg_dt`/`reg_id`만 직접 관리합니다. 나머지 13개 엔티티는 BaseEntity를 상속합니다.
 
 #### 3.1.1 BaseEntity (공통 감사 컬럼)
 
@@ -227,11 +243,17 @@ public class TaxType extends BaseEntity {
     @Column(name = "TAX_TYPE_NM", nullable = false, length = 50)
     private String taxTypeNm;
 
+    @Column(name = "TAX_TYPE_NM_EN", nullable = false, length = 50)
+    private String taxTypeNmEn;
+
     @Column(name = "FILE_EXT", nullable = false, length = 10)
     private String fileExt;
 
     @Column(name = "ENCODING", nullable = false, length = 10)
     private String encoding;
+
+    @Column(name = "SORT_ORDER", nullable = false)
+    private Integer sortOrder = 0;
 
     @Column(name = "USE_YN", nullable = false, length = 1)
     private String useYn = "Y";
@@ -261,6 +283,9 @@ public class RecordLayout extends BaseEntity {
 
     @Column(name = "APPLY_START_DT", nullable = false)
     private LocalDate applyStartDt;
+
+    @Column(name = "REQUIRED_YN", length = 1)
+    private String requiredYn = "Y";
 
     @Column(name = "APPLY_END_DT")
     private LocalDate applyEndDt;
@@ -304,6 +329,9 @@ public class FieldLayout extends BaseEntity {
 
     @Column(name = "VALIDATION_TYPE", length = 30)
     private String validationType; // BRN, RRN, DATE 등
+
+    @Column(name = "DESCRIPTION", length = 500)
+    private String description;
 }
 
 // MST_VALIDATION_RULE
@@ -329,6 +357,9 @@ public class ValidationRule extends BaseEntity {
 
     @Column(name = "LEGAL_BASIS", length = 200)
     private String legalBasis;
+
+    @Column(name = "PENALTY_REF", length = 200)
+    private String penaltyRef;
 
     @Column(name = "ERROR_MSG", nullable = false, length = 500)
     private String errorMsg;
@@ -373,6 +404,134 @@ public class TaxRate extends BaseEntity {
 
     @Column(name = "DEDUCTION_AMT")
     private Long deductionAmt;
+
+    @Column(name = "DESCRIPTION", length = 200)
+    private String description;
+}
+
+// MST_FORM_CODE
+@Entity @Table(name = "MST_FORM_CODE")
+public class FormCode extends BaseEntity {
+    @Id @Column(name = "FORM_CD", length = 10)
+    private String formCd;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "TAX_TYPE_CD", nullable = false)
+    private TaxType taxType;
+
+    @Column(name = "FORM_NM", nullable = false, length = 200)
+    private String formNm;
+
+    @Column(name = "RECORD_TYPE", nullable = false, length = 1)
+    private Character recordType;
+
+    @Column(name = "REQUIRED_YN", nullable = false, length = 1)
+    private String requiredYn = "Y";
+
+    @Column(name = "REQUIRED_COND", length = 200)
+    private String requiredCond;
+
+    @Column(name = "APPLY_START_DT", nullable = false)
+    private LocalDate applyStartDt;
+
+    @Column(name = "APPLY_END_DT")
+    private LocalDate applyEndDt;
+
+    @Column(name = "USE_YN", nullable = false, length = 1)
+    private String useYn = "Y";
+}
+
+// MST_DEDUCTION_LIMIT
+@Entity @Table(name = "MST_DEDUCTION_LIMIT")
+public class DeductionLimit extends BaseEntity {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "LIMIT_ID")
+    private Long limitId;
+
+    @Column(name = "TAX_TYPE_CD", nullable = false, length = 10)
+    private String taxTypeCd;
+
+    @Column(name = "TAX_YEAR", nullable = false, length = 4)
+    private String taxYear;
+
+    @Column(name = "DEDUCTION_CD", nullable = false, length = 20)
+    private String deductionCd;
+
+    @Column(name = "DEDUCTION_NM", nullable = false, length = 200)
+    private String deductionNm;
+
+    @Column(name = "LIMIT_AMT")
+    private Long limitAmt;
+
+    @Column(name = "LIMIT_RATE", precision = 5, scale = 2)
+    private BigDecimal limitRate;
+
+    @Column(name = "CONDITION_DESC", length = 500)
+    private String conditionDesc;
+
+    @Column(name = "LEGAL_BASIS", length = 200)
+    private String legalBasis;
+}
+
+// MST_CODE
+@Entity @Table(name = "MST_CODE")
+@IdClass(CodeId.class)
+public class Code extends BaseEntity {
+    @Id @Column(name = "CODE_GRP", length = 20)
+    private String codeGrp;
+
+    @Id @Column(name = "CODE_CD", length = 20)
+    private String codeCd;
+
+    @Column(name = "CODE_NM", nullable = false, length = 100)
+    private String codeNm;
+
+    @Column(name = "CODE_NM_EN", length = 100)
+    private String codeNmEn;
+
+    @Column(name = "CODE_DESC", length = 200)
+    private String codeDesc;
+
+    @Column(name = "SORT_ORDER", nullable = false)
+    private Integer sortOrder = 0;
+
+    @Column(name = "PARENT_CD", length = 20)
+    private String parentCd;
+
+    @Column(name = "USE_YN", nullable = false, length = 1)
+    private String useYn = "Y";
+}
+
+// MST_CODE 복합키
+public class CodeId implements Serializable {
+    private String codeGrp;
+    private String codeCd;
+}
+
+// MST_ERROR_CODE
+@Entity @Table(name = "MST_ERROR_CODE")
+public class ErrorCode extends BaseEntity {
+    @Id @Column(name = "ERROR_CD", length = 20)
+    private String errorCd;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "RULE_ID", nullable = false)
+    private ValidationRule validationRule;
+
+    @Column(name = "ERROR_MSG_TEMPLATE", nullable = false, length = 500)
+    private String errorMsgTemplate;
+
+    @Column(name = "FIX_GUIDE_TEMPLATE", length = 500)
+    private String fixGuideTemplate;
+
+    @Column(name = "LEGAL_BASIS", length = 200)
+    private String legalBasis;
+
+    @Column(name = "PENALTY_INFO", length = 200)
+    private String penaltyInfo;
+
+    @Column(name = "USE_YN", nullable = false, length = 1)
+    private String useYn = "Y";
 }
 ```
 
@@ -402,6 +561,12 @@ public class ValidationRequest extends BaseEntity {
     @Column(name = "COMPLETED_FILE_CNT", nullable = false)
     private Integer completedFileCnt = 0;
 
+    @Column(name = "REQUEST_DT", nullable = false)
+    private LocalDateTime requestDt;
+
+    @Column(name = "COMPLETE_DT")
+    private LocalDateTime completeDt;
+
     @OneToMany(mappedBy = "validationRequest", cascade = CascadeType.ALL)
     private List<ValidationFile> files = new ArrayList<>();
 }
@@ -423,18 +588,33 @@ public class ValidationFile extends BaseEntity {
     @Column(name = "STORED_FILE_NM", nullable = false, length = 255)
     private String storedFileNm;
 
+    @Column(name = "FILE_PATH", nullable = false, length = 500)
+    private String filePath;
+
+    @Column(name = "FILE_SIZE", nullable = false)
+    private Long fileSize;
+
     @Column(name = "FILE_EXT", nullable = false, length = 10)
     private String fileExt;
 
     @Column(name = "TAX_TYPE_CD", length = 10)
     private String taxTypeCd;
 
+    @Column(name = "ENCODING", length = 10)
+    private String encoding;
+
     @Column(name = "IS_MERGED", nullable = false, length = 1)
     private String isMerged = "N";
+
+    @Column(name = "MERGED_CNT")
+    private Integer mergedCnt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS", nullable = false, length = 10)
     private FileStatus status = FileStatus.UPLOADED;
+
+    @Column(name = "DELETED_AT")
+    private LocalDateTime deletedAt;
 }
 
 // RES_VALIDATION_RESULT
@@ -444,8 +624,12 @@ public class ValidationResult extends BaseEntity {
     @Column(name = "RESULT_ID")
     private Long resultId;
 
-    @Column(name = "FILE_ID", nullable = false)
-    private Long fileId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "FILE_ID", nullable = false)
+    private ValidationFile validationFile;
+
+    @Column(name = "MERGED_SEQ")
+    private Integer mergedSeq;
 
     @Column(name = "TAX_TYPE_CD", nullable = false, length = 10)
     private String taxTypeCd;
@@ -456,8 +640,17 @@ public class ValidationResult extends BaseEntity {
     @Column(name = "TAXPAYER_NM", length = 100)
     private String taxpayerNm;
 
+    @Column(name = "TAX_YEAR", length = 4)
+    private String taxYear;
+
+    @Column(name = "TAX_PERIOD", length = 10)
+    private String taxPeriod;
+
     @Column(name = "TOTAL_RULE_CNT", nullable = false)
     private Integer totalRuleCnt = 0;
+
+    @Column(name = "PASS_CNT", nullable = false)
+    private Integer passCnt = 0;
 
     @Column(name = "FATAL_CNT", nullable = false)
     private Integer fatalCnt = 0;
@@ -468,6 +661,9 @@ public class ValidationResult extends BaseEntity {
     @Column(name = "WARNING_CNT", nullable = false)
     private Integer warningCnt = 0;
 
+    @Column(name = "INFO_CNT", nullable = false)
+    private Integer infoCnt = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "OVERALL_RESULT", nullable = false, length = 10)
     private OverallResult overallResult; // PASS, FAIL
@@ -475,9 +671,15 @@ public class ValidationResult extends BaseEntity {
     @Column(name = "PROCESSING_MS")
     private Long processingMs;
 
+    @Column(name = "VALIDATED_AT", nullable = false)
+    private LocalDateTime validatedAt;
+
     @OneToMany(mappedBy = "validationResult", cascade = CascadeType.ALL)
     @OrderBy("seq ASC")
     private List<ValidationDetail> details = new ArrayList<>();
+
+    @OneToMany(mappedBy = "validationResult", cascade = CascadeType.ALL)
+    private List<ValidationReport> reports = new ArrayList<>();
 }
 
 // RES_VALIDATION_DETAIL
@@ -503,8 +705,14 @@ public class ValidationDetail {
     @Column(name = "RECORD_TYPE", length = 1)
     private Character recordType;
 
+    @Column(name = "RECORD_SEQ")
+    private Integer recordSeq;
+
     @Column(name = "FIELD_NM", length = 100)
     private String fieldNm;
+
+    @Column(name = "FIELD_POS", length = 20)
+    private String fieldPos;
 
     @Column(name = "ACTUAL_VALUE", length = 500)
     private String actualValue;
@@ -515,11 +723,118 @@ public class ValidationDetail {
     @Column(name = "ERROR_MSG", nullable = false, length = 500)
     private String errorMsg;
 
+    @Column(name = "LEGAL_BASIS", length = 200)
+    private String legalBasis;
+
     @Column(name = "FIX_GUIDE", length = 500)
     private String fixGuide;
 
-    @Column(name = "LEGAL_BASIS", length = 200)
-    private String legalBasis;
+    @Column(name = "reg_dt", nullable = false, updatable = false)
+    private LocalDateTime regDt;
+
+    @Column(name = "reg_id", nullable = false, updatable = false, length = 50)
+    private String regId;
+}
+```
+
+#### 3.1.4 Report & History Entities
+
+```java
+// RES_VALIDATION_REPORT
+@Entity @Table(name = "RES_VALIDATION_REPORT")
+public class ValidationReport extends BaseEntity {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "REPORT_ID")
+    private Long reportId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "RESULT_ID", nullable = false)
+    private ValidationResult validationResult;
+
+    @Column(name = "REPORT_TYPE", nullable = false, length = 10)
+    private String reportType; // SUMMARY, DETAIL, PDF, EXCEL
+
+    @Column(name = "REPORT_FILE_NM", length = 255)
+    private String reportFileNm;
+
+    @Column(name = "REPORT_FILE_PATH", length = 500)
+    private String reportFilePath;
+
+    @Column(name = "REPORT_DATA", columnDefinition = "LONGTEXT")
+    private String reportData; // JSON
+
+    @Column(name = "GENERATED_AT", nullable = false)
+    private LocalDateTime generatedAt;
+}
+
+// HIS_VALIDATION_LOG
+@Entity @Table(name = "HIS_VALIDATION_LOG")
+public class ValidationLog {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "LOG_ID")
+    private Long logId;
+
+    @Column(name = "VALIDATION_ID", nullable = false)
+    private Long validationId;
+
+    @Column(name = "FILE_ID")
+    private Long fileId;
+
+    @Column(name = "LOG_LEVEL", nullable = false, length = 10)
+    private String logLevel; // INFO, WARN, ERROR
+
+    @Column(name = "LOG_PHASE", nullable = false, length = 20)
+    private String logPhase; // UPLOAD, PARSE, L1~L5, REPORT
+
+    @Column(name = "LOG_MSG", nullable = false, length = 1000)
+    private String logMsg;
+
+    @Column(name = "ELAPSED_MS")
+    private Long elapsedMs;
+
+    @Column(name = "LOG_DT", nullable = false)
+    private LocalDateTime logDt;
+
+    @Column(name = "reg_dt", nullable = false, updatable = false)
+    private LocalDateTime regDt;
+
+    @Column(name = "reg_id", nullable = false, updatable = false, length = 50)
+    private String regId;
+}
+
+// HIS_RULE_CHANGE
+@Entity @Table(name = "HIS_RULE_CHANGE")
+public class RuleChange {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "CHANGE_ID")
+    private Long changeId;
+
+    @Column(name = "RULE_ID", nullable = false, length = 20)
+    private String ruleId;
+
+    @Column(name = "CHANGE_TYPE", nullable = false, length = 10)
+    private String changeType; // CREATE, UPDATE, DELETE
+
+    @Column(name = "BEFORE_DATA", columnDefinition = "TEXT")
+    private String beforeData; // JSON
+
+    @Column(name = "AFTER_DATA", columnDefinition = "TEXT")
+    private String afterData; // JSON
+
+    @Column(name = "CHANGE_REASON", length = 500)
+    private String changeReason;
+
+    @Column(name = "CHANGED_BY", nullable = false, length = 50)
+    private String changedBy;
+
+    @Column(name = "CHANGED_AT", nullable = false)
+    private LocalDateTime changedAt;
+
+    @Column(name = "reg_dt", nullable = false, updatable = false)
+    private LocalDateTime regDt;
+
+    @Column(name = "reg_id", nullable = false, updatable = false, length = 50)
+    private String regId;
 }
 ```
 
@@ -530,12 +845,16 @@ MST_TAX_TYPE (1) ──── (N) MST_FORM_CODE
 MST_TAX_TYPE (1) ──── (N) MST_RECORD_LAYOUT
 MST_TAX_TYPE (1) ──── (N) MST_VALIDATION_RULE
 MST_TAX_TYPE (1) ──── (N) MST_TAX_RATE
+MST_TAX_TYPE (1) ──── (N) MST_DEDUCTION_LIMIT
 MST_RECORD_LAYOUT (1) ──── (N) MST_FIELD_LAYOUT
-MST_VALIDATION_RULE (1) ──── (1) MST_ERROR_CODE
+MST_FORM_CODE (N) ──── (1) MST_TAX_TYPE
+MST_VALIDATION_RULE (1) ──── (N) MST_ERROR_CODE
 REQ_VALIDATION (1) ──── (N) REQ_VALIDATION_FILE
 REQ_VALIDATION_FILE (1) ──── (N) RES_VALIDATION_RESULT
 RES_VALIDATION_RESULT (1) ──── (N) RES_VALIDATION_DETAIL
 RES_VALIDATION_RESULT (1) ──── (N) RES_VALIDATION_REPORT
+REQ_VALIDATION (1) ──── (N) HIS_VALIDATION_LOG
+MST_VALIDATION_RULE (1) ──── (N) HIS_RULE_CHANGE
 ```
 
 ---
@@ -570,9 +889,32 @@ RES_VALIDATION_RESULT (1) ──── (N) RES_VALIDATION_REPORT
 }
 ```
 
+**페이지네이션 응답 형식** (목록 API 공통):
+```json
+{
+  "success": true,
+  "data": {
+    "content": [ ... ],
+    "totalElements": 150,
+    "totalPages": 8,
+    "page": 0,
+    "size": 20,
+    "first": true,
+    "last": false
+  },
+  "timestamp": "2026-02-19T12:00:00Z"
+}
+```
+
 **인증**: `Authorization: Bearer {JWT_ACCESS_TOKEN}`
 
-**페이지네이션**: `?page=0&size=20&sort=createdAt,desc`
+**페이지네이션 Query Parameters** (목록 API 공통):
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | Integer | 0 | 페이지 번호 (0-based) |
+| size | Integer | 20 | 페이지 크기 (max: 100) |
+| sort | String | createdAt,desc | 정렬 기준 (field,direction) |
 
 ### 4.2 Validation API (검증)
 
@@ -742,6 +1084,39 @@ RES_VALIDATION_RESULT (1) ──── (N) RES_VALIDATION_REPORT
 | PUT | /api/v1/admin/tax-rates/{rateId} | 세율 수정 |
 | DELETE | /api/v1/admin/tax-rates/{rateId} | 세율 삭제 |
 
+#### CRUD /api/v1/admin/form-codes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/v1/admin/form-codes | 서식코드 목록 (필터: taxType, recordType, useYn) |
+| GET | /api/v1/admin/form-codes/{formCd} | 서식코드 상세 |
+| POST | /api/v1/admin/form-codes | 서식코드 등록 |
+| PUT | /api/v1/admin/form-codes/{formCd} | 서식코드 수정 |
+| DELETE | /api/v1/admin/form-codes/{formCd} | 서식코드 삭제 (Soft) |
+
+**POST /api/v1/admin/form-codes Request**:
+```json
+{
+  "formCd": "V101001",
+  "taxTypeCd": "VAT",
+  "formNm": "일반과세자 부가가치세 신고서",
+  "recordType": "A",
+  "requiredYn": "Y",
+  "requiredCond": null,
+  "applyStartDt": "2025-01-01"
+}
+```
+
+#### CRUD /api/v1/admin/error-codes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/v1/admin/error-codes | 오류코드 목록 (필터: ruleId, useYn) |
+| GET | /api/v1/admin/error-codes/{errorCd} | 오류코드 상세 |
+| POST | /api/v1/admin/error-codes | 오류코드 등록 |
+| PUT | /api/v1/admin/error-codes/{errorCd} | 오류코드 수정 |
+| DELETE | /api/v1/admin/error-codes/{errorCd} | 오류코드 삭제 (Soft) |
+
 #### CRUD /api/v1/admin/layouts
 
 | Method | Path | Description |
@@ -751,13 +1126,39 @@ RES_VALIDATION_RESULT (1) ──── (N) RES_VALIDATION_REPORT
 | POST | /api/v1/admin/layouts | 레이아웃 등록 (필드 포함) |
 | PUT | /api/v1/admin/layouts/{layoutId} | 레이아웃 수정 |
 
+#### CRUD /api/v1/admin/deduction-limits
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/v1/admin/deduction-limits | 공제/감면 한도 목록 (필터: taxType, year, deductionCd) |
+| GET | /api/v1/admin/deduction-limits/{limitId} | 한도 상세 |
+| POST | /api/v1/admin/deduction-limits | 한도 등록 |
+| PUT | /api/v1/admin/deduction-limits/{limitId} | 한도 수정 |
+| DELETE | /api/v1/admin/deduction-limits/{limitId} | 한도 삭제 |
+
+**POST /api/v1/admin/deduction-limits Request**:
+```json
+{
+  "taxTypeCd": "INC",
+  "taxYear": "2025",
+  "deductionCd": "PERSONAL_BASIC",
+  "deductionNm": "기본공제 (본인/배우자/부양가족)",
+  "limitAmt": 1500000,
+  "limitRate": null,
+  "conditionDesc": "1인당 연 150만원, 경로우대 100만원 추가",
+  "legalBasis": "소득세법 제50조~제51조의2"
+}
+```
+
 #### CRUD /api/v1/admin/codes
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | /api/v1/admin/codes | 공통코드 목록 (필터: codeGrp) |
+| GET | /api/v1/admin/codes | 공통코드 목록 (필터: codeGrp, useYn) |
+| GET | /api/v1/admin/codes/{codeGrp}/{codeCd} | 코드 상세 |
 | POST | /api/v1/admin/codes | 코드 등록 |
 | PUT | /api/v1/admin/codes/{codeGrp}/{codeCd} | 코드 수정 |
+| DELETE | /api/v1/admin/codes/{codeGrp}/{codeCd} | 코드 삭제 (Soft) |
 
 #### GET /api/v1/admin/dashboard
 
@@ -812,8 +1213,11 @@ com.entec.fev/
 │   │   └── AuthController.java
 │   ├── admin/                                    # Admin Controllers
 │   │   ├── AdminRuleController.java
+│   │   ├── AdminFormCodeController.java
+│   │   ├── AdminErrorCodeController.java
 │   │   ├── AdminLayoutController.java
 │   │   ├── AdminCodeController.java
+│   │   ├── AdminDeductionController.java
 │   │   └── DashboardController.java
 │   └── dto/                                      # Request/Response DTOs
 │       ├── request/
@@ -842,8 +1246,11 @@ com.entec.fev/
 │   │   └── ReportExportService.java              # PDF/Excel 내보내기
 │   ├── management/
 │   │   ├── RuleManagementService.java            # 규칙 CRUD
+│   │   ├── FormCodeManagementService.java        # 서식코드 CRUD
+│   │   ├── ErrorCodeManagementService.java       # 오류코드 CRUD
 │   │   ├── LayoutManagementService.java          # 레이아웃 CRUD
-│   │   └── CodeManagementService.java            # 코드/세율 CRUD
+│   │   ├── CodeManagementService.java            # 공통코드/세율 CRUD
+│   │   └── DeductionLimitService.java            # 공제한도 CRUD
 │   └── auth/
 │       ├── AuthService.java
 │       └── AuthServiceImpl.java
@@ -921,16 +1328,51 @@ com.entec.fev/
 ├── infrastructure/                               # Infrastructure Layer
 │   ├── persistence/                              # DB 접근
 │   │   ├── entity/                               # JPA Entities (Section 3.1 참조)
+│   │   │   ├── TaxTypeEntity.java
+│   │   │   ├── FormCodeEntity.java
+│   │   │   ├── RecordLayoutEntity.java
+│   │   │   ├── FieldLayoutEntity.java
+│   │   │   ├── ValidationRuleEntity.java
+│   │   │   ├── TaxRateEntity.java
+│   │   │   ├── DeductionLimitEntity.java
+│   │   │   ├── CodeEntity.java
+│   │   │   ├── ErrorCodeEntity.java
+│   │   │   ├── ValidationRequestEntity.java
+│   │   │   ├── ValidationFileEntity.java
+│   │   │   ├── ValidationResultEntity.java
+│   │   │   ├── ValidationDetailEntity.java
+│   │   │   ├── ValidationReportEntity.java
+│   │   │   ├── ValidationLogEntity.java
+│   │   │   └── RuleChangeEntity.java
 │   │   ├── repository/                           # JPA Repositories
 │   │   │   ├── TaxTypeRepository.java
+│   │   │   ├── FormCodeRepository.java
 │   │   │   ├── RecordLayoutRepository.java
 │   │   │   ├── FieldLayoutRepository.java
 │   │   │   ├── ValidationRuleRepository.java
 │   │   │   ├── TaxRateRepository.java
+│   │   │   ├── DeductionLimitRepository.java
+│   │   │   ├── CodeRepository.java
+│   │   │   ├── ErrorCodeRepository.java
 │   │   │   ├── ValidationRequestRepository.java
+│   │   │   ├── ValidationFileRepository.java
 │   │   │   ├── ValidationResultRepository.java
-│   │   │   └── ValidationDetailRepository.java
-│   │   └── mapper/                               # MyBatis Mappers
+│   │   │   ├── ValidationDetailRepository.java
+│   │   │   ├── ValidationReportRepository.java
+│   │   │   ├── ValidationLogRepository.java
+│   │   │   └── RuleChangeRepository.java
+│   │   ├── mapper/                               # Entity ↔ Domain 변환 (MapStruct)
+│   │   │   ├── TaxTypeMapper.java
+│   │   │   ├── FormCodeMapper.java
+│   │   │   ├── RecordLayoutMapper.java
+│   │   │   ├── FieldLayoutMapper.java
+│   │   │   ├── ValidationRuleMapper.java
+│   │   │   ├── TaxRateMapper.java
+│   │   │   ├── DeductionLimitMapper.java
+│   │   │   ├── ValidationRequestMapper.java
+│   │   │   ├── ValidationResultMapper.java
+│   │   │   └── ValidationReportMapper.java
+│   │   └── mybatis/                              # MyBatis Mappers
 │   │       ├── DashboardMapper.java              # 통계 집계 쿼리
 │   │       └── ValidationSearchMapper.java       # 복합 검색 쿼리
 │   ├── fileio/
@@ -941,7 +1383,9 @@ com.entec.fev/
 │   └── security/
 │       ├── JwtTokenProvider.java                 # JWT 생성/검증
 │       ├── JwtAuthenticationFilter.java          # JWT 필터
-│       └── SecurityConfig.java                   # Spring Security 설정
+│       ├── SecurityConfig.java                   # Spring Security 설정
+│       ├── ValidationAccessChecker.java          # 결과 접근제어 (Section 7.3)
+│       └── EncryptionService.java                # AES-256 암호화 (Section 7.5)
 │
 └── common/                                       # 공통 모듈
     ├── util/
@@ -1137,18 +1581,79 @@ public class GlobalExceptionHandler {
 | `/api/v1/admin/**` | ROLE_ADMIN |
 | `/swagger-ui/**`, `/v3/api-docs/**` | permitAll (dev/staging only) |
 
-### 7.3 데이터 보안
+### 7.3 결과 접근제어 (Method-Level Security)
+
+```java
+// ValidationController.java
+@GetMapping("/validations/{validationId}")
+@PreAuthorize("@validationAccessChecker.isOwner(#validationId, authentication)")
+public ApiResponse<ValidationResultResponse> getValidation(@PathVariable Long validationId) { ... }
+
+@GetMapping("/validations/{validationId}/results/{resultId}/details")
+@PreAuthorize("@validationAccessChecker.isOwner(#validationId, authentication)")
+public ApiResponse<Page<ValidationDetailResponse>> getDetails(...) { ... }
+
+// ValidationAccessChecker.java (infrastructure/security/)
+@Component("validationAccessChecker")
+public class ValidationAccessChecker {
+    public boolean isOwner(Long validationId, Authentication auth) {
+        String userId = auth.getName();
+        return validationRequestRepository.existsByValidationIdAndUserId(validationId, userId);
+    }
+}
+```
+
+- ROLE_ADMIN은 모든 결과 접근 가능 (`hasRole('ADMIN') or @validationAccessChecker.isOwner(...)`)
+- ROLE_USER는 본인 요청 결과만 조회 가능
+
+### 7.4 데이터 보안
 
 | 항목 | 조치 |
 |------|------|
 | 주민번호 마스킹 | 리포트 출력 시 `800101-1******` 형태로 마스킹 |
 | 로그 마스킹 | 로그에 주민번호/계좌번호 출력 금지, MaskingService 적용 |
 | 파일 보안 | 검증 완료 후 원본 파일 즉시 삭제 (FILE_RETENTION_SECONDS 경과 시) |
-| 결과 접근 제어 | 검증 요청자만 해당 결과 조회 가능 (userId 비교) |
 | SQL Injection | JPA Parameterized Query + MyBatis #{} 사용 |
 | XSS | Spring Security ContentSecurityPolicy 설정 |
-| 민감정보 암호화 | DB 내 주민번호/계좌번호는 AES-256 암호화 저장 |
 | HTTPS | 운영 환경 HTTPS 강제 |
+
+### 7.5 민감정보 암호화 (AES-256)
+
+```java
+// infrastructure/security/EncryptionService.java
+@Service
+public class EncryptionService {
+    @Value("${encryption.aes.key}")
+    private String aesKey; // 32바이트 (256bit)
+
+    private static final String ALGORITHM = "AES/GCM/NoPadding";
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
+
+    /** 암호화: RRN, 계좌번호 등 민감정보 저장 시 사용 */
+    public String encrypt(String plainText) { ... }
+
+    /** 복호화: 검증 처리 시 필요한 경우만 메모리 내에서 복호화 */
+    public String decrypt(String cipherText) { ... }
+}
+```
+
+**암호화 대상 필드**:
+- `RES_VALIDATION_RESULT.BRN`: 사업자등록번호 (검증용 → 평문 유지, 리포트 시 마스킹)
+- 파일 내 주민번호/계좌번호: 파싱 후 메모리에서만 처리, DB 저장하지 않음
+- 검증 결과의 `ACTUAL_VALUE`에 주민번호가 포함된 경우: 마스킹 후 저장
+
+### 7.6 파일 업로드 보안
+
+| 항목 | 조치 |
+|------|------|
+| 확장자 화이트리스트 | `.101`, `.102`, `.201`, `.301`, `.401`, `.501`만 허용 |
+| MIME Type 검증 | `application/octet-stream` 또는 `text/plain`만 허용 |
+| 파일 크기 제한 | 단일 파일 200MB, 총 업로드 1GB (`FILE_MAX_SIZE` 환경변수) |
+| 파일명 검증 | Path Traversal 방지 (`../`, `..\\` 차단) |
+| 저장 파일명 | UUID 기반 랜덤 파일명으로 저장 (원본 파일명은 DB에만 기록) |
+| 임시 디렉터리 | 격리된 임시 경로 사용 (`FILE_UPLOAD_PATH`), 정기 cleanup |
+| 바이러스 검사 | (Optional) ClamAV 연동 (운영 환경에서 검토) |
 
 ---
 
@@ -1206,9 +1711,15 @@ public class GlobalExceptionHandler {
 #### 보안 테스트
 
 - [ ] JWT 만료 토큰으로 API 호출 → 401
-- [ ] 타인의 검증 결과 조회 시도 → 403
+- [ ] 타인의 검증 결과 조회 시도 → 403 (@PreAuthorize 접근제어)
+- [ ] ROLE_ADMIN은 타인 검증 결과 조회 가능
 - [ ] 리포트에 주민번호 뒤 6자리 마스킹 확인
 - [ ] 로그에 개인정보 출력 없음 확인
+- [ ] AES-256 암호화/복호화 정상 동작 (EncryptionService)
+- [ ] 암호화 키 없이 서비스 기동 시 실패 확인
+- [ ] 미허용 확장자(.txt, .exe) 업로드 시 400 에러
+- [ ] Path Traversal 시도 (../../../etc) 차단 확인
+- [ ] 200MB 초과 파일 업로드 시 413 에러
 
 ---
 
@@ -1241,7 +1752,32 @@ public class GlobalExceptionHandler {
 └──────────────────────────────────────────────────┘
 ```
 
-### 9.3 Import Rules
+### 9.3 Domain Model ↔ JPA Entity 매핑 전략
+
+```
+[Domain Layer]                          [Infrastructure Layer]
+domain/model/                           infrastructure/persistence/entity/
+├── ParsedRecord.java (POJO)           ├── TaxTypeEntity.java (@Entity)
+├── ParsedField.java (POJO)            ├── RecordLayoutEntity.java (@Entity)
+├── ValidationError.java (VO)          ├── ValidationRuleEntity.java (@Entity)
+├── ValidationContext.java             ├── ValidationResultEntity.java (@Entity)
+└── enums/                              └── ...
+    ├── TaxTypeCode.java
+    └── Severity.java
+
+infrastructure/persistence/mapper/      # Entity ↔ Domain 변환
+├── TaxTypeMapper.java                  # TaxTypeEntity → TaxType (도메인)
+├── ValidationRuleMapper.java
+└── ValidationResultMapper.java
+```
+
+**변환 규칙**:
+- Domain → Infrastructure: Service에서 Repository 호출 전 Mapper로 변환
+- Infrastructure → Domain: Repository 반환값을 Mapper로 도메인 모델 변환
+- Domain Layer의 모델은 `@Entity`, `@Column` 등 JPA 어노테이션을 사용하지 않음
+- MapStruct 또는 수동 Mapper로 구현 (MapStruct 권장)
+
+### 9.4 Import Rules
 
 | From | Can Import | Cannot Import |
 |------|-----------|---------------|
@@ -1317,6 +1853,7 @@ public class GlobalExceptionHandler {
 | `FILE_RETENTION_SECONDS` | 검증 후 파일 보관 시간 | `3600` (1h) |
 | `REDIS_HOST` | Redis 서버 주소 | `localhost` |
 | `REDIS_PORT` | Redis 서버 포트 | `6379` |
+| `ENCRYPTION_AES_KEY` | AES-256 암호화 키 (32바이트 Base64) | (필수) |
 | `SPRING_PROFILES_ACTIVE` | 활성 프로파일 | `local` |
 
 ---
@@ -1419,3 +1956,5 @@ Step 19: 모니터링 대시보드
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
 | 1.0.0 | 2026-02-19 | Initial design: Architecture, JPA Entity, API Spec 12 endpoints, Class Design 60+ classes, 5-level Pipeline, 4 Tax Modules, Test Plan, Implementation Guide 19 steps | Claude |
+| 1.1.0 | 2026-02-19 | Validation fix: +7 JPA Entities, entity-schema column sync (16개 필드), +1 Admin API (deduction-limits), Clean Architecture separation (Entity↔Domain mapper), @PreAuthorize 접근제어, AES-256 암호화 명세, 파일 업로드 보안, +6 보안 테스트 | Claude |
+| 1.2.0 | 2026-02-19 | Iteration fix: +2 Admin API (form-codes, error-codes CRUD), codes DELETE 추가, Entity-Domain mapper 10개로 확장, 페이지네이션 응답 형식 표준화, ENCRYPTION_AES_KEY 환경변수, Entity 명명규칙/BaseEntity 상속 문서화, Architecture diagram Controller 동기화 | Claude |

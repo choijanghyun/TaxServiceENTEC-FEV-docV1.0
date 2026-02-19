@@ -4,15 +4,15 @@
     "feature": "TaxFileErrorValidation",
     "planFile": "docs/01-plan/features/tax-file-error-validation.plan.md",
     "designFile": "docs/02-design/features/tax-file-error-validation.design.md",
-    "analysisFile": null,
+    "analysisFile": "docs/03-analysis/features/tax-file-error-validation.analysis.md",
     "reportFile": null,
-    "matchRate": null,
-    "iterationCount": 0,
+    "matchRate": 98,
+    "iterationCount": 1,
     "startedAt": "2026-02-19T00:00:00Z",
-    "updatedAt": "2026-02-19T14:00:00Z",
+    "updatedAt": "2026-02-19T16:00:00Z",
     "planVersion": "1.1.0",
     "planStatus": "completed",
-    "designVersion": "1.0.0",
+    "designVersion": "1.2.0",
     "designStatus": "completed"
   }
 }
