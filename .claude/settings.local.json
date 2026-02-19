@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(SHELL=\"/c/Program Files/Git/bin/bash.exe\" pip install:*)",
+      "mcp__ide__executeCode",
+      "Bash(dir \"C:\\\\nts_dev\\\\TaxServiceENTEC-FEV-docV1.0\\\\refer-doc\")",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(cmd /c \"dir C:\\\\nts_dev\\\\TaxServiceENTEC-FEV-docV1.0\\\\refer-doc\")"
+    ]
+  }
+}
