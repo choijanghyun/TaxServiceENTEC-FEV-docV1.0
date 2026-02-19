@@ -7,7 +7,9 @@
       "Bash(dir \"C:\\\\nts_dev\\\\TaxServiceENTEC-FEV-docV1.0\\\\refer-doc\")",
       "Bash(python:*)",
       "Bash(python3:*)",
-      "Bash(cmd /c \"dir C:\\\\nts_dev\\\\TaxServiceENTEC-FEV-docV1.0\\\\refer-doc\")"
+      "Bash(cmd /c \"dir C:\\\\nts_dev\\\\TaxServiceENTEC-FEV-docV1.0\\\\refer-doc\")",
+      "Bash(python -m pip install:*)",
+      "Bash(/c/Users/janghyunchoi/AppData/Local/Programs/Python/Python*/python.exe)"
     ]
   }
 }
