@@ -11,11 +11,11 @@ Usage:
 9 Sheets (MST_ tables):
     1. TAX_TYPE        - 세목 마스터 (7건)
     2. FORM_CODE       - 서식코드 마스터 (~70건)
-    3. VALIDATION_RULE  - 검증 규칙 (~122건)
+    3. VALIDATION_RULE  - 검증 규칙 (~140건)
     4. TAX_RATE         - 세율표 (~25건)
     5. DEDUCTION_LIMIT  - 공제/감면 한도표 (34건)
-    6. CODE             - 공통코드 (~56건)
-    7. ERROR_CODE       - 오류코드 (~37건)
+    6. CODE             - 공통코드 (~67건)
+    7. ERROR_CODE       - 오류코드 (~66건)
     8. RECORD_LAYOUT    - 레코드 레이아웃 (~70건)
     9. FIELD_LAYOUT     - 필드 레이아웃 (~20건 샘플)
 
@@ -302,6 +302,26 @@ def main():
         R('VAT-R004', 'VAT', '대손세액공제 기간 초과', 5, 'ERROR',
           '대손확정일 - 공급일 <= 5년', '부가가치세법 제45조', None,
           '대손세액공제 기간(5년) 초과', '대손세액공제는 공급일로부터 5년 이내만 가능'),
+        # ---- CIT L1 Format ----
+        R('CIT-F001', 'CIT', '파일 확장자 검증', 1, 'FATAL',
+          'FILE_EXT == .201', None, None,
+          '파일 확장자가 .201이 아닙니다', '법인세 파일 확장자를 .201로 확인'),
+        R('CIT-F002', 'CIT', '레코드 길이 검증', 1, 'FATAL',
+          'LEN(record) == LAYOUT.RECORD_LEN', None, None,
+          '레코드 길이 오류', '레코드 길이를 규격에 맞게 수정'),
+        R('CIT-F003', 'CIT', '숫자 필드 타입 검증', 1, 'FATAL',
+          'FIELD.type==N => MATCH(^[0-9]+$)', None, None,
+          '숫자 필드에 문자 포함', '숫자 필드에서 문자를 제거하세요'),
+        # ---- CIT L2 Structure ----
+        R('CIT-S001', 'CIT', 'A/B/Z 레코드 존재 검증', 2, 'FATAL',
+          'EXISTS(A) AND EXISTS(B) AND EXISTS(Z)', None, None,
+          'A/B/Z 레코드 누락', '필수 레코드(A, B, Z)를 포함하세요'),
+        R('CIT-S002', 'CIT', 'Z레코드 건수 일치', 2, 'FATAL',
+          'Z.record_count == ACTUAL_COUNT', None, None,
+          'Z레코드 건수 불일치', 'Z레코드의 총건수를 일치시키세요'),
+        R('CIT-S003', 'CIT', '사업자번호 레코드간 일치', 2, 'FATAL',
+          'A.BRN == B.BRN', None, None,
+          'A/B 레코드 사업자번호 불일치', '사업자번호를 일치시키세요'),
         # ---- CIT L3 Content ----
         R('CIT-C001', 'CIT', '당기순이익 일치 검증', 3, 'FATAL',
           'CIT2.손익계산서.당기순이익 == CIT1.세무조정.결산서상_당기순이익',
@@ -394,6 +414,26 @@ def main():
         R('CIT2-E040', 'CIT', '전기 연속성 검증', 4, 'WARNING',
           '당기_전기금액 == 전기_당기금액', None, None,
           '전기 금액 연속성 오류', '당기 재무제표의 전기금액을 확인하세요'),
+        # ---- INC L1 Format ----
+        R('INC-F001', 'INC', '파일 확장자 검증', 1, 'FATAL',
+          'FILE_EXT == .301', None, None,
+          '파일 확장자가 .301이 아닙니다', '종합소득세 파일 확장자를 .301로 확인'),
+        R('INC-F002', 'INC', '레코드 길이 검증', 1, 'FATAL',
+          'LEN(record) == LAYOUT.RECORD_LEN', None, None,
+          '레코드 길이 오류', '레코드 길이를 규격에 맞게 수정'),
+        R('INC-F003', 'INC', '숫자 필드 타입 검증', 1, 'FATAL',
+          'FIELD.type==N => MATCH(^[0-9]+$)', None, None,
+          '숫자 필드에 문자 포함', '숫자 필드에서 문자를 제거하세요'),
+        # ---- INC L2 Structure ----
+        R('INC-S001', 'INC', 'A/B/Z 레코드 존재 검증', 2, 'FATAL',
+          'EXISTS(A) AND EXISTS(B) AND EXISTS(Z)', None, None,
+          'A/B/Z 레코드 누락', '필수 레코드(A, B, Z)를 포함하세요'),
+        R('INC-S002', 'INC', 'Z레코드 건수 일치', 2, 'FATAL',
+          'Z.record_count == ACTUAL_COUNT', None, None,
+          'Z레코드 건수 불일치', 'Z레코드의 총건수를 일치시키세요'),
+        R('INC-S003', 'INC', '사업자번호 레코드간 일치', 2, 'FATAL',
+          'A.BRN == B.BRN', None, None,
+          'A/B 레코드 사업자번호/주민번호 불일치', '사업자번호/주민번호를 일치시키세요'),
         # ---- INC L3 Content ----
         R('INC-C001', 'INC', '소득합산 검증', 3, 'ERROR',
           '종합소득금액 == 이자+배당+사업+근로+연금+기타', None, None,
@@ -557,7 +597,21 @@ def main():
         R('WHT-W003', 'WHT', '기타소득 필요경비율 확인', 5, 'WARNING',
           'CHECK(필요경비율)', '소득세법 제37조', None,
           '기타소득 필요경비율 비정상', '기타소득 필요경비율(일반 60%)을 확인하세요'),
-        # ---- CGT 양도소득세 ----
+        # ---- CGT L1 Format ----
+        R('CGT-F001', 'CGT', '파일 확장자 검증', 1, 'FATAL',
+          'FILE_EXT == .501', None, None,
+          '파일 확장자가 .501이 아닙니다', '양도소득세 파일 확장자를 .501로 확인'),
+        R('CGT-F002', 'CGT', '레코드 길이 검증', 1, 'FATAL',
+          'LEN(record) == LAYOUT.RECORD_LEN', None, None,
+          '레코드 길이 오류', '레코드 길이를 규격에 맞게 수정'),
+        # ---- CGT L2 Structure ----
+        R('CGT-S001', 'CGT', 'A/B/Z 레코드 존재 검증', 2, 'FATAL',
+          'EXISTS(A) AND EXISTS(B) AND EXISTS(Z)', None, None,
+          'A/B/Z 레코드 누락', '필수 레코드(A, B, Z)를 포함하세요'),
+        R('CGT-S002', 'CGT', 'Z레코드 건수 일치', 2, 'FATAL',
+          'Z.record_count == ACTUAL_COUNT', None, None,
+          'Z레코드 건수 불일치', 'Z레코드의 총건수를 일치시키세요'),
+        # ---- CGT L3~L5 양도소득세 ----
         R('CGT-C001', 'CGT', '양도차익 계산', 3, 'ERROR',
           '양도차익 == 양도가액 - 취득가액 - 필요경비', '소득세법 제95조', None,
           '양도차익 계산 오류', '양도차익 = 양도가액 - 취득가액 - 필요경비'),
@@ -585,7 +639,7 @@ def main():
     # Sheet 4: MST_TAX_RATE (세율표)
     # =========================================================================
     RATE_HEADERS = [
-        'TAX_TYPE_CD', 'TAX_YEAR', 'BRACKET_SEQ', 'BASE_FROM',
+        'RATE_ID', 'TAX_TYPE_CD', 'TAX_YEAR', 'BRACKET_SEQ', 'BASE_FROM',
         'BASE_TO', 'RATE_PERCENT', 'DEDUCTION_AMT', 'DESCRIPTION'
     ]
     RATE_DATA = [
@@ -618,12 +672,14 @@ def main():
         ('CGT', '2025', 5, 0, 300000000, 22.00, 0, '기타 주식 (3억 이하)'),
         ('CGT', '2025', 6, 300000001, None, 27.50, 0, '기타 주식 (3억 초과)'),
     ]
+    # Prepend RATE_ID (AUTO_INCREMENT PK)
+    RATE_DATA = [(i + 1,) + row for i, row in enumerate(RATE_DATA)]
 
     # =========================================================================
     # Sheet 5: MST_DEDUCTION_LIMIT (공제/감면 한도표)
     # =========================================================================
     DED_HEADERS = [
-        'TAX_TYPE_CD', 'TAX_YEAR', 'DEDUCTION_CD', 'DEDUCTION_NM',
+        'LIMIT_ID', 'TAX_TYPE_CD', 'TAX_YEAR', 'DEDUCTION_CD', 'DEDUCTION_NM',
         'LIMIT_AMT', 'LIMIT_RATE', 'CONDITION_DESC', 'LEGAL_BASIS'
     ]
     DED_DATA = [
@@ -665,6 +721,8 @@ def main():
         ('INC', '2025', 'INC-DED-016', '표준세액공제(근로자)', 130000, None, '근로소득자', '소득세법 제59조의4'),
         ('INC', '2025', 'INC-DED-017', '표준세액공제(기타)', 70000, None, '근로소득 외', '소득세법 제59조의4'),
     ]
+    # Prepend LIMIT_ID (AUTO_INCREMENT PK)
+    DED_DATA = [(i + 1,) + row for i, row in enumerate(DED_DATA)]
 
     # =========================================================================
     # Sheet 6: MST_CODE (공통코드)
@@ -725,14 +783,25 @@ def main():
         ('INC_TYPE', 'A20', '사업소득(일반)', 'Business(General)', None, 7, None, 'Y'),
         ('INC_TYPE', 'A21', '사업소득(연금계좌)', 'Business(Pension)', None, 8, None, 'Y'),
         ('INC_TYPE', 'A22', '봉사료', 'Tips', None, 9, None, 'Y'),
-        ('INC_TYPE', 'A29', '사업소득 소계', 'Business Subtotal', None, 10, None, 'Y'),
-        ('INC_TYPE', 'A30', '기타소득', 'Other Income', None, 11, None, 'Y'),
-        ('INC_TYPE', 'A40', '이자소득', 'Interest', None, 12, None, 'Y'),
-        ('INC_TYPE', 'A41', '배당소득', 'Dividend', None, 13, None, 'Y'),
-        ('INC_TYPE', 'A49', '금융소득 소계', 'Financial Subtotal', None, 14, None, 'Y'),
-        ('INC_TYPE', 'A50', '연금소득', 'Pension', None, 15, None, 'Y'),
-        ('INC_TYPE', 'A90', '가감계', 'Adjustment Total', None, 16, None, 'Y'),
-        ('INC_TYPE', 'A99', '합계', 'Grand Total', None, 17, None, 'Y'),
+        ('INC_TYPE', 'A25', '사업소득(인적용역)', 'Business(Personal Svc)', None, 10, None, 'Y'),
+        ('INC_TYPE', 'A26', '사업소득(봉사료 종합)', 'Business(Tips Total)', None, 11, None, 'Y'),
+        ('INC_TYPE', 'A29', '사업소득 소계', 'Business Subtotal', None, 12, None, 'Y'),
+        ('INC_TYPE', 'A30', '기타소득', 'Other Income', None, 13, None, 'Y'),
+        ('INC_TYPE', 'A40', '이자소득', 'Interest', None, 14, None, 'Y'),
+        ('INC_TYPE', 'A41', '배당소득', 'Dividend', None, 15, None, 'Y'),
+        ('INC_TYPE', 'A42', '배당소득(집합투자)', 'Dividend(Fund)', None, 16, None, 'Y'),
+        ('INC_TYPE', 'A49', '금융소득 소계', 'Financial Subtotal', None, 17, None, 'Y'),
+        ('INC_TYPE', 'A50', '연금소득', 'Pension', None, 18, None, 'Y'),
+        ('INC_TYPE', 'A60', '기타소득(종교인)', 'Other(Religious)', None, 19, None, 'Y'),
+        ('INC_TYPE', 'A69', '기타소득 소계', 'Other Subtotal', None, 20, None, 'Y'),
+        ('INC_TYPE', 'A70', '비거주자(근로)', 'Non-resident(Employ)', None, 21, None, 'Y'),
+        ('INC_TYPE', 'A71', '비거주자(퇴직)', 'Non-resident(Retire)', None, 22, None, 'Y'),
+        ('INC_TYPE', 'A72', '비거주자(사업)', 'Non-resident(Business)', None, 23, None, 'Y'),
+        ('INC_TYPE', 'A73', '비거주자(기타)', 'Non-resident(Other)', None, 24, None, 'Y'),
+        ('INC_TYPE', 'A79', '비거주자(그외)', 'Non-resident(Misc)', None, 25, None, 'Y'),
+        ('INC_TYPE', 'A80', '비거주자 소계', 'Non-resident Subtotal', None, 26, None, 'Y'),
+        ('INC_TYPE', 'A90', '가감계', 'Adjustment Total', None, 27, None, 'Y'),
+        ('INC_TYPE', 'A99', '합계', 'Grand Total', None, 28, None, 'Y'),
     ]
 
     # =========================================================================
@@ -743,7 +812,7 @@ def main():
         'LEGAL_BASIS', 'PENALTY_INFO', 'USE_YN'
     ]
     ERR_DATA = [
-        # VAT 오류코드 (19건)
+        # VAT 오류코드 (23건)
         ('VAT-F001', 'VAT-F001', '파일 확장자가 .101/.102이 아닙니다', '부가세 파일 확장자 확인', None, None, 'Y'),
         ('VAT-F002', 'VAT-F002', '레코드 길이 오류 (기대:{expected}, 실제:{actual})', '레코드 길이 규격 수정', None, None, 'Y'),
         ('VAT-F003', 'VAT-F003', '숫자 필드에 문자 포함', '숫자 필드 문자 제거', None, None, 'Y'),
@@ -753,43 +822,75 @@ def main():
         ('VAT-S004', 'VAT-S004', 'A/B 레코드 사업자번호 불일치', '사업자번호 일치 확인', None, None, 'Y'),
         ('VAT-S005', 'VAT-S005', '합계표 갑/을지 쌍 불일치', '갑지/을지 쌍 확인', None, None, 'Y'),
         ('VAT-C001', 'VAT-C001', '매출세액 불일치 (파일:{actual}, 계산:{expected})', '매출세액=과세표준x10%', '부가가치세법 제30조', '과소신고가산세 10%', 'Y'),
-        ('VAT-C002', 'VAT-C003', '과세표준 합계 불일치', '각 유형별 과세표준 합계 확인', None, None, 'Y'),
-        ('VAT-C003', 'VAT-C050', '납부세액 계산 오류', '납부세액 산식 확인', None, None, 'Y'),
+        ('VAT-C002', 'VAT-C002', '영세율 매출 세액이 0이 아닙니다', '영세율 매출 세액 0 확인', '부가가치세법 제11조', None, 'Y'),
+        ('VAT-C003', 'VAT-C003', '과세표준 합계 불일치', '각 유형별 과세표준 합계 확인', None, None, 'Y'),
+        ('VAT-C010', 'VAT-C010', '공제받을매입세액 합계 불일치', '매입세액 각 항목 합계 확인', '부가가치세법 제37조', None, 'Y'),
+        ('VAT-C050', 'VAT-C050', '납부(환급)세액 계산 오류', '납부세액 산식 확인', None, None, 'Y'),
+        ('VAT-C060', 'VAT-C060', '사업자등록번호 체크디지트 오류', '사업자번호 확인', None, None, 'Y'),
         ('VAT-L001', 'VAT-L001', '매출합계표와 신고서 금액 불일치', '매출합계표↔신고서 일치', None, None, 'Y'),
-        ('VAT-L002', 'VAT-L003', '매입합계표와 신고서 금액 불일치', '매입합계표↔신고서 일치', None, None, 'Y'),
-        ('VAT-L003', 'VAT-L005', '갑지/을지 합계 불일치', '갑지/을지 매수/금액 일치', None, None, 'Y'),
-        ('VAT-L004', 'VAT-L008', '의제매입세액 신고서↔본문 불일치', '의제매입세액 교차확인', None, None, 'Y'),
+        ('VAT-L002', 'VAT-L002', '매출합계표와 신고서 세액 불일치', '매출합계표↔신고서 세액 일치', None, None, 'Y'),
+        ('VAT-L003', 'VAT-L003', '매입합계표와 신고서 금액 불일치', '매입합계표↔신고서 일치', None, None, 'Y'),
+        ('VAT-L005', 'VAT-L005', '갑지/을지 매수 합계 불일치', '갑지/을지 매수/금액 일치', None, None, 'Y'),
+        ('VAT-L004', 'VAT-L008', '전자/종이 세금계산서 합계 불일치', '전자+종이 세금계산서 합계 확인', None, None, 'Y'),
         ('VAT-R001', 'VAT-R001', '과세 매출에 영세율 적용', '영세율 요건 확인', '부가가치세법 제11조', None, 'Y'),
         ('VAT-R002', 'VAT-R002', '간이과세 부가가치율 오적용', '업종별 부가가치율 확인', '부가가치세법 제61조', None, 'Y'),
         ('VAT-R003', 'VAT-R003', '신용카드발행공제 한도 초과', '연간한도 1,000만원 확인', None, None, 'Y'),
         ('VAT-R004', 'VAT-R004', '대손세액공제 기간(5년) 초과', '공급일 기준 5년 확인', '부가가치세법 제45조', None, 'Y'),
-        # WHT 오류코드 (18건)
+        # WHT 오류코드 (25건)
         ('WHT-F001', 'WHT-F001', '파일 확장자가 .401이 아닙니다', '원천세 파일 확장자 .401 확인', None, None, 'Y'),
         ('WHT-F002', 'WHT-F002', '레코드 길이 규격 불일치', '레코드 길이 규격 수정', None, None, 'Y'),
         ('WHT-F003', 'WHT-F003', '숫자 필드에 문자 포함', '숫자 필드 문자 제거', None, None, 'Y'),
         ('WHT-S001', 'WHT-S001', 'Z레코드 건수 불일치', 'Z레코드 총건수 수정', None, None, 'Y'),
         ('WHT-S002', 'WHT-S002', '필수 레코드 누락', '필수 레코드 추가', None, None, 'Y'),
         ('WHT-S003', 'WHT-S003', '사업자번호 레코드간 불일치', '모든 레코드 사업자번호 일치', None, None, 'Y'),
-        ('WHT-C001', 'WHT-C001', '소득종류별 소계 불일치', '소계 합산 확인', None, None, 'Y'),
-        ('WHT-C002', 'WHT-C006', '가감계(A90) 합산 오류', '가감계 합산 확인', None, None, 'Y'),
-        ('WHT-C003', 'WHT-C007', '합계(A99) 오류', '최종합계 확인', None, None, 'Y'),
-        ('WHT-C004', 'WHT-C008', '지방소득세 = 소득세x10% 불일치', '지방소득세 계산 확인', None, None, 'Y'),
-        ('WHT-C005', 'WHT-C009', '납부세액 계산 오류', '납부세액 산식 확인', None, None, 'Y'),
-        ('WHT-L001', 'WHT-L001', '신고서 인원 vs 지급명세서 건수 불일치', '인원수 일치 확인', None, None, 'Y'),
-        ('WHT-L002', 'WHT-L006', '신고서 총지급액 vs 지급명세서 합계 불일치', '총지급액 합계 확인', None, None, 'Y'),
-        ('WHT-L003', 'WHT-Y004', '연말정산 결정세액 계산 오류', '결정세액 산식 확인', None, None, 'Y'),
-        ('WHT-L004', 'WHT-L005', '퇴직소득세 환산계산 오류', '환산급여 계산 확인', None, None, 'Y'),
+        ('WHT-C001', 'WHT-C001', '근로소득 소계(A09) 불일치', '근로소득 소계 합산 확인', None, None, 'Y'),
+        ('WHT-C002', 'WHT-C002', '사업소득 소계(A29) 불일치', '사업소득 소계 합산 확인', None, None, 'Y'),
+        ('WHT-C003', 'WHT-C003', '금융소득 소계(A49) 불일치', '금융소득 소계 합산 확인', None, None, 'Y'),
+        ('WHT-C004', 'WHT-C004', '기타소득 소계(A69) 불일치', '기타소득 소계 합산 확인', None, None, 'Y'),
+        ('WHT-C005', 'WHT-C005', '비거주자 소계(A80) 불일치', '비거주자 소계 합산 확인', None, None, 'Y'),
+        ('WHT-C006', 'WHT-C006', '가감계(A90) 합산 오류', '가감계 합산 확인', None, None, 'Y'),
+        ('WHT-C007', 'WHT-C007', '합계(A99) 오류', '최종합계 확인', None, None, 'Y'),
+        ('WHT-C008', 'WHT-C008', '지방소득세 = 소득세x10% 불일치', '지방소득세 계산 확인', None, None, 'Y'),
+        ('WHT-C009', 'WHT-C009', '납부세액 계산 오류', '납부세액 산식 확인', None, None, 'Y'),
+        ('WHT-L001', 'WHT-L001', '신고서 인원 vs 지급명세서 건수 불일치 (근로)', '근로소득 인원수 일치 확인', None, None, 'Y'),
+        ('WHT-L002', 'WHT-L002', '일용근로 인원 교차검증 불일치', '일용근로 인원수 일치 확인', None, None, 'Y'),
+        ('WHT-L003', 'WHT-L003', '사업소득 인원 교차검증 불일치', '사업소득 인원수 일치 확인', None, None, 'Y'),
+        ('WHT-L004', 'WHT-L004', '기타소득 인원 교차검증 불일치', '기타소득 인원수 일치 확인', None, None, 'Y'),
+        ('WHT-L005', 'WHT-L005', '퇴직소득 인원 교차검증 불일치', '퇴직소득 인원수 일치 확인', None, None, 'Y'),
+        ('WHT-L006', 'WHT-L006', '신고서 총지급액 vs 지급명세서 합계 불일치', '총지급액 합계 확인', None, None, 'Y'),
+        ('WHT-Y004', 'WHT-Y004', '연말정산 결정세액 계산 오류', '결정세액 산식 확인', None, None, 'Y'),
         ('WHT-W001', 'WHT-W001', '일용근로 일급여 15만원 이하 세액=0 확인', '비과세 한도 확인', '소득세법 제47조', None, 'Y'),
         ('WHT-W002', 'WHT-W002', '사업소득 3% 미적용 건 존재', '원천징수세율 3% 확인', '소득세법 제129조', None, 'Y'),
         ('WHT-W003', 'WHT-W003', '기타소득 필요경비율 비정상', '필요경비율 60% 확인', '소득세법 제37조', None, 'Y'),
+        # CIT 오류코드 (8건)
+        ('CIT-C001', 'CIT-C001', '당기순이익 불일치 (법인세-1 vs 법인세-2)', '법인세-1/2 당기순이익 일치', '법인세법 시행규칙 별지 제3호', None, 'Y'),
+        ('CIT-C002', 'CIT-C002', '소득금액 계산 오류', '소득금액 산식 확인', '법인세법 제14조', '과소신고가산세 10%', 'Y'),
+        ('CIT-C004', 'CIT-C004', '산출세액 계산 오류', '누진세율 적용 확인', '법인세법 제55조', '과소신고가산세 10%', 'Y'),
+        ('CIT-C009', 'CIT-C009', '최저한세 미달', '최저한세 이상 납부 확인', '조특법 제132조', None, 'Y'),
+        ('CIT-L001', 'CIT-L001', '접대비 한도 초과', '접대비 한도 확인', '법인세법 제25조', None, 'Y'),
+        ('CIT-L002', 'CIT-L002', '기부금 공제한도 초과', '법정/지정 기부금 한도 확인', '법인세법 제24조', None, 'Y'),
+        ('CIT2-E001', 'CIT2-E001', '재무상태표 대차균형 오류', '자산=부채+자본 확인', None, None, 'Y'),
+        ('CIT2-E020', 'CIT2-E020', '법인세-2/1 당기순이익 교차 불일치', '법인세-2와 1 당기순이익 일치', None, None, 'Y'),
+        # INC 오류코드 (6건)
+        ('INC-C002', 'INC-C002', '과세표준 계산 오류', '과세표준 산식 확인', '소득세법 제14조', '과소신고가산세 10%', 'Y'),
+        ('INC-C003', 'INC-C003', '산출세액 계산 오류', '8단계 누진세율 확인', '소득세법 제55조', None, 'Y'),
+        ('INC-L001', 'INC-L001', '인적공제 대상 소득요건 초과', '부양가족 소득 100만 이하 확인', '소득세법 제50조', None, 'Y'),
+        ('INC-L003', 'INC-L003', '부녀자/한부모공제 중복 적용', '중복 불가 확인', '소득세법 제51조', None, 'Y'),
+        ('INC-L005', 'INC-L005', '소득공제 종합한도(2,500만원) 초과', '종합한도 확인', '조특법 제132조의2', None, 'Y'),
+        ('INC-T004', 'INC-T004', '표준/특별세액공제 동시 적용', '중복 불가 확인', '소득세법 제59조의4', None, 'Y'),
+        # CGT 오류코드 (4건)
+        ('CGT-C001', 'CGT-C001', '양도차익 계산 오류', '양도차익 산식 확인', '소득세법 제95조', None, 'Y'),
+        ('CGT-C005', 'CGT-C005', '양도소득세 중과세율 적용 오류', '중과세율 확인', '소득세법 제104조', None, 'Y'),
+        ('CGT-C006', 'CGT-C006', '양도소득 기본공제 초과', '연간 250만원 한도 확인', '소득세법 제103조', None, 'Y'),
+        ('CGT-C007', 'CGT-C007', '양도소득세 누진세율 오적용', '8단계 누진세율 확인', '소득세법 제104조', None, 'Y'),
     ]
 
     # =========================================================================
     # Sheet 8: MST_RECORD_LAYOUT (레코드 레이아웃)
     # =========================================================================
     LAYOUT_HEADERS = [
-        'TAX_TYPE_CD', 'FORM_CD', 'RECORD_TYPE', 'RECORD_NM',
-        'RECORD_LEN', 'REQUIRED_YN', 'APPLY_START_DT'
+        'LAYOUT_ID', 'TAX_TYPE_CD', 'FORM_CD', 'RECORD_TYPE', 'RECORD_NM',
+        'RECORD_LEN', 'REQUIRED_YN', 'APPLY_START_DT', 'APPLY_END_DT'
     ]
     # Generate from FORM_CODE_DATA (1:1 mapping)
     # RECORD_LEN defaults - exact values require 파일설명서(.doc) 변환
@@ -800,43 +901,50 @@ def main():
         'M': 500, 'N': 500, 'O': 500, 'P': 500, 'Q': 500, 'R': 500,
         'S': 500, 'T': 500, 'U': 500, 'Z': 200
     }
+    layout_id = 0
     for fc in FORM_CODE_DATA:
+        layout_id += 1
         form_cd, tax_type, form_nm, rec_type = fc[0], fc[1], fc[2], fc[3]
-        req_yn = fc[4]
+        req_yn = 'Y' if fc[4] in ('Y', 'C') else 'N'  # RECORD_LAYOUT: Y/N only (C→Y)
         rec_len = DEFAULT_LENS.get(rec_type, 500)
-        LAYOUT_DATA.append((tax_type, form_cd, rec_type, form_nm, rec_len, req_yn, D))
+        LAYOUT_DATA.append((layout_id, tax_type, form_cd, rec_type, form_nm, rec_len, req_yn, D, None))
+    # Build FORM_CD → LAYOUT_ID mapping for FIELD_LAYOUT FK references
+    _form_to_layout = {fc[0]: i + 1 for i, fc in enumerate(FORM_CODE_DATA)}
 
     # =========================================================================
     # Sheet 9: MST_FIELD_LAYOUT (필드 레이아웃 - VAT A/B 레코드 샘플)
     # =========================================================================
     FIELD_HEADERS = [
-        'LAYOUT_REF', 'FIELD_SEQ', 'FIELD_NM', 'FIELD_START',
+        'FIELD_ID', 'LAYOUT_ID', 'FIELD_SEQ', 'FIELD_NM', 'FIELD_START',
         'FIELD_LEN', 'DATA_TYPE', 'REQUIRED_TYPE', 'VALID_VALUES',
         'VALIDATION_TYPE', 'DESCRIPTION'
     ]
+    # LAYOUT_ID references: V101000 → _form_to_layout['V101000'], V101001 → _form_to_layout['V101001']
+    _LID_A = _form_to_layout['V101000']  # VAT A Record header layout
+    _LID_B = _form_to_layout['V101001']  # VAT B Record body layout
     FIELD_DATA = [
         # VAT A Record (헤더) - V101000
-        ('VAT-V101000-A', 1, '레코드구분', 1, 1, 'C', 'M', '["A"]', None, '헤더 레코드 식별자'),
-        ('VAT-V101000-A', 2, '서식코드', 2, 7, 'C', 'M', None, None, '서식코드 (V101001 등)'),
-        ('VAT-V101000-A', 3, '사업자등록번호', 9, 10, 'N', 'M', None, 'BRN', '10자리 사업자번호'),
-        ('VAT-V101000-A', 4, '납세자명', 19, 40, 'C', 'M', None, None, '납세자(법인)명'),
-        ('VAT-V101000-A', 5, '귀속연도', 59, 4, 'N', 'M', None, None, 'YYYY 형식'),
-        ('VAT-V101000-A', 6, '귀속기간', 63, 2, 'N', 'M', '["01","02","03","04"]', None, '부가세 귀속기간코드'),
-        ('VAT-V101000-A', 7, '신고구분코드', 65, 2, 'N', 'M', '["01","02","03","04"]', None, '정기/수정/기한후/경정'),
-        ('VAT-V101000-A', 8, '주민등록번호', 67, 13, 'N', 'M', None, 'RRN', '13자리 주민번호'),
-        ('VAT-V101000-A', 9, '프로그램코드', 80, 10, 'C', 'O', None, None, '세무프로그램 식별코드'),
+        (1, _LID_A, 1, '레코드구분', 1, 1, 'C', 'M', '["A"]', None, '헤더 레코드 식별자'),
+        (2, _LID_A, 2, '서식코드', 2, 7, 'C', 'M', None, None, '서식코드 (V101001 등)'),
+        (3, _LID_A, 3, '사업자등록번호', 9, 10, 'N', 'M', None, 'BRN', '10자리 사업자번호'),
+        (4, _LID_A, 4, '납세자명', 19, 40, 'C', 'M', None, None, '납세자(법인)명'),
+        (5, _LID_A, 5, '귀속연도', 59, 4, 'N', 'M', None, None, 'YYYY 형식'),
+        (6, _LID_A, 6, '귀속기간', 63, 2, 'N', 'M', '["01","02","03","04"]', None, '부가세 귀속기간코드'),
+        (7, _LID_A, 7, '신고구분코드', 65, 2, 'N', 'M', '["01","02","03","04"]', None, '정기/수정/기한후/경정'),
+        (8, _LID_A, 8, '주민등록번호', 67, 13, 'N', 'M', None, 'RRN', '13자리 주민번호'),
+        (9, _LID_A, 9, '프로그램코드', 80, 10, 'C', 'O', None, None, '세무프로그램 식별코드'),
         # VAT B Record (신고서 본문) - V101001 주요 필드
-        ('VAT-V101001-B', 1, '레코드구분', 1, 1, 'C', 'M', '["B"]', None, '본문 레코드 식별자'),
-        ('VAT-V101001-B', 2, '서식코드', 2, 7, 'C', 'M', None, None, 'V101001'),
-        ('VAT-V101001-B', 3, '사업자등록번호', 9, 10, 'N', 'M', None, 'BRN', '10자리 사업자번호'),
-        ('VAT-V101001-B', 4, '세금계산서발급분-과세표준', 19, 15, 'N', 'M', None, None, '과세 매출 과세표준'),
-        ('VAT-V101001-B', 5, '세금계산서발급분-세액', 34, 13, 'N', 'M', None, None, '= 과세표준 x 10%'),
-        ('VAT-V101001-B', 6, '영세율세금계산서-과세표준', 47, 15, 'N', 'O', None, None, '영세율 매출'),
-        ('VAT-V101001-B', 7, '과세표준합계', 62, 15, 'N', 'M', None, None, 'SUM(각 유형별 과세표준)'),
-        ('VAT-V101001-B', 8, '매출세액합계', 77, 13, 'N', 'M', None, None, 'SUM(각 유형별 세액)'),
-        ('VAT-V101001-B', 9, '공제받을매입세액합계', 90, 13, 'N', 'M', None, None, 'SUM(각 매입세액)'),
-        ('VAT-V101001-B', 10, '납부(환급)세액', 103, 13, 'N', 'M', None, None, '매출세액-매입세액+불공제'),
-        ('VAT-V101001-B', 11, '차가감납부할세액', 116, 13, 'N', 'M', None, None, '최종 납부/환급 세액'),
+        (10, _LID_B, 1, '레코드구분', 1, 1, 'C', 'M', '["B"]', None, '본문 레코드 식별자'),
+        (11, _LID_B, 2, '서식코드', 2, 7, 'C', 'M', None, None, 'V101001'),
+        (12, _LID_B, 3, '사업자등록번호', 9, 10, 'N', 'M', None, 'BRN', '10자리 사업자번호'),
+        (13, _LID_B, 4, '세금계산서발급분-과세표준', 19, 15, 'N', 'M', None, None, '과세 매출 과세표준'),
+        (14, _LID_B, 5, '세금계산서발급분-세액', 34, 13, 'N', 'M', None, None, '= 과세표준 x 10%'),
+        (15, _LID_B, 6, '영세율세금계산서-과세표준', 47, 15, 'N', 'O', None, None, '영세율 매출'),
+        (16, _LID_B, 7, '과세표준합계', 62, 15, 'N', 'M', None, None, 'SUM(각 유형별 과세표준)'),
+        (17, _LID_B, 8, '매출세액합계', 77, 13, 'N', 'M', None, None, 'SUM(각 유형별 세액)'),
+        (18, _LID_B, 9, '공제받을매입세액합계', 90, 13, 'N', 'M', None, None, 'SUM(각 매입세액)'),
+        (19, _LID_B, 10, '납부(환급)세액', 103, 13, 'N', 'M', None, None, '매출세액-매입세액+불공제'),
+        (20, _LID_B, 11, '차가감납부할세액', 116, 13, 'N', 'M', None, None, '최종 납부/환급 세액'),
     ]
 
     # =========================================================================
