@@ -802,88 +802,94 @@ def main():
         ('INC_TYPE', 'A80', '비거주자 소계', 'Non-resident Subtotal', None, 26, None, 'Y'),
         ('INC_TYPE', 'A90', '가감계', 'Adjustment Total', None, 27, None, 'Y'),
         ('INC_TYPE', 'A99', '합계', 'Grand Total', None, 28, None, 'Y'),
+        # SIMPLE_VAT_BIZ - 간이과세자 업종별 부가가치율 (8건)
+        ('SIMPLE_VAT_BIZ', '01', '전기/가스/증기/수도사업', 'Utilities', '부가가치율 5%', 1, None, 'Y'),
+        ('SIMPLE_VAT_BIZ', '02', '소매업/재생용재료수집판매업', 'Retail', '부가가치율 15%', 2, None, 'Y'),
+        ('SIMPLE_VAT_BIZ', '03', '제조업/농업/임업/어업', 'Manufacturing/Agriculture', '부가가치율 20%', 3, None, 'Y'),
+        ('SIMPLE_VAT_BIZ', '04', '숙박업', 'Accommodation', '부가가치율 25%', 4, None, 'Y'),
+        ('SIMPLE_VAT_BIZ', '05', '건설업/운수및통신업', 'Construction/Transport', '부가가치율 30%', 5, None, 'Y'),
+        ('SIMPLE_VAT_BIZ', '06', '음식점업', 'Restaurant', '부가가치율 15%', 6, None, 'Y'),
+        ('SIMPLE_VAT_BIZ', '07', '부동산임대업', 'Real Estate Rental', '부가가치율 40%', 7, None, 'Y'),
+        ('SIMPLE_VAT_BIZ', '08', '그 밖의 서비스업', 'Other Services', '부가가치율 30%', 8, None, 'Y'),
+        # REQUEST_STATUS - 검증요청 상태 (5건)
+        ('REQUEST_STATUS', 'PENDING', '대기', 'Pending', '검증 요청 접수됨', 1, None, 'Y'),
+        ('REQUEST_STATUS', 'PROCESSING', '처리중', 'Processing', '검증 진행 중', 2, None, 'Y'),
+        ('REQUEST_STATUS', 'COMPLETED', '완료', 'Completed', '모든 파일 검증 완료', 3, None, 'Y'),
+        ('REQUEST_STATUS', 'FAILED', '실패', 'Failed', '시스템 오류로 처리 실패', 4, None, 'Y'),
+        ('REQUEST_STATUS', 'CANCELLED', '취소', 'Cancelled', '사용자 취소', 5, None, 'Y'),
+        # FILE_STATUS - 파일 상태 (6건)
+        ('FILE_STATUS', 'UPLOADED', '업로드완료', 'Uploaded', '파일 업로드 완료', 1, None, 'Y'),
+        ('FILE_STATUS', 'PARSING', '파싱중', 'Parsing', '파일 파싱 진행 중', 2, None, 'Y'),
+        ('FILE_STATUS', 'VALIDATING', '검증중', 'Validating', '검증 파이프라인 진행 중', 3, None, 'Y'),
+        ('FILE_STATUS', 'COMPLETED', '완료', 'Completed', '검증 완료', 4, None, 'Y'),
+        ('FILE_STATUS', 'ERROR', '오류', 'Error', '처리 중 오류 발생', 5, None, 'Y'),
+        ('FILE_STATUS', 'DELETED', '삭제됨', 'Deleted', '파일 삭제(TTL 만료)', 6, None, 'Y'),
+        # OVERALL_RESULT - 검증 판정 결과 (2건)
+        ('OVERALL_RESULT', 'PASS', '통과', 'Pass', 'Fatal/Error 0건 → 접수 가능', 1, None, 'Y'),
+        ('OVERALL_RESULT', 'FAIL', '실패', 'Fail', 'Fatal/Error 1건 이상 → 수정 필요', 2, None, 'Y'),
+        # LOG_LEVEL - 로그 수준 (3건)
+        ('LOG_LEVEL', 'INFO', '정보', 'Info', '일반 처리 로그', 1, None, 'Y'),
+        ('LOG_LEVEL', 'WARN', '경고', 'Warning', '경고 로그', 2, None, 'Y'),
+        ('LOG_LEVEL', 'ERROR', '에러', 'Error', '오류 로그', 3, None, 'Y'),
+        # LOG_PHASE - 로그 처리 단계 (7건)
+        ('LOG_PHASE', 'UPLOAD', '업로드', 'Upload', '파일 업로드 단계', 1, None, 'Y'),
+        ('LOG_PHASE', 'PARSE', '파싱', 'Parse', '파일 파싱 단계', 2, None, 'Y'),
+        ('LOG_PHASE', 'L1', '형식검증', 'L1 Format', '검증 Level 1', 3, None, 'Y'),
+        ('LOG_PHASE', 'L2', '구조검증', 'L2 Structure', '검증 Level 2', 4, None, 'Y'),
+        ('LOG_PHASE', 'L3', '내용검증', 'L3 Content', '검증 Level 3', 5, None, 'Y'),
+        ('LOG_PHASE', 'L4', '논리검증', 'L4 Logic', '검증 Level 4', 6, None, 'Y'),
+        ('LOG_PHASE', 'L5', '법규검증', 'L5 Regulatory', '검증 Level 5', 7, None, 'Y'),
+        ('LOG_PHASE', 'REPORT', '리포트', 'Report', '리포트 생성 단계', 8, None, 'Y'),
+        # CHANGE_TYPE - 규칙 변경 유형 (3건)
+        ('CHANGE_TYPE', 'CREATE', '생성', 'Create', '신규 규칙 생성', 1, None, 'Y'),
+        ('CHANGE_TYPE', 'UPDATE', '수정', 'Update', '기존 규칙 수정', 2, None, 'Y'),
+        ('CHANGE_TYPE', 'DELETE', '삭제', 'Delete', '규칙 삭제(논리삭제)', 3, None, 'Y'),
+        # REPORT_FORMAT - 리포트 출력 형식 (4건)
+        ('REPORT_FORMAT', 'SUMMARY', '요약', 'Summary', 'JSON 요약 리포트', 1, None, 'Y'),
+        ('REPORT_FORMAT', 'DETAIL', '상세', 'Detail', 'JSON 상세 리포트', 2, None, 'Y'),
+        ('REPORT_FORMAT', 'PDF', 'PDF', 'PDF', 'PDF 파일 출력', 3, None, 'Y'),
+        ('REPORT_FORMAT', 'EXCEL', 'Excel', 'Excel', 'Excel 파일 출력', 4, None, 'Y'),
+        # ENCODING - 파일 인코딩 (2건)
+        ('ENCODING', 'EUC-KR', 'EUC-KR', 'EUC-KR', '한글 2바이트 완성형', 1, None, 'Y'),
+        ('ENCODING', 'UTF-8', 'UTF-8', 'UTF-8', 'Unicode 가변길이', 2, None, 'Y'),
+        # PENALTY_TYPE - 가산세 유형 (7건)
+        ('PENALTY_TYPE', '01', '무신고가산세(일반)', 'Non-filing(General)', '납부세액x20%', 1, None, 'Y'),
+        ('PENALTY_TYPE', '02', '무신고가산세(부정)', 'Non-filing(Fraud)', '납부세액x40%', 2, None, 'Y'),
+        ('PENALTY_TYPE', '03', '과소신고가산세(일반)', 'Under-reporting(General)', '과소분x10%', 3, None, 'Y'),
+        ('PENALTY_TYPE', '04', '과소신고가산세(부정)', 'Under-reporting(Fraud)', '과소분x40%', 4, None, 'Y'),
+        ('PENALTY_TYPE', '05', '납부지연가산세', 'Late Payment', '미납x일수x0.022%', 5, None, 'Y'),
+        ('PENALTY_TYPE', '06', '세금계산서미발급', 'Invoice Non-issuance', '공급가액x2%', 6, None, 'Y'),
+        ('PENALTY_TYPE', '07', '세금계산서부실기재', 'Invoice Inaccuracy', '공급가액x1%', 7, None, 'Y'),
+        # AMENDMENT_RELIEF - 수정신고 감면율 (6건)
+        ('AMENDMENT_RELIEF', '01', '1개월이내', 'Within 1 month', '감면율 90%', 1, None, 'Y'),
+        ('AMENDMENT_RELIEF', '02', '1~3개월', '1-3 months', '감면율 75%', 2, None, 'Y'),
+        ('AMENDMENT_RELIEF', '03', '3~6개월', '3-6 months', '감면율 50%', 3, None, 'Y'),
+        ('AMENDMENT_RELIEF', '04', '6개월~1년', '6mo-1yr', '감면율 30%', 4, None, 'Y'),
+        ('AMENDMENT_RELIEF', '05', '1년~1년6개월', '1yr-1.5yr', '감면율 20%', 5, None, 'Y'),
+        ('AMENDMENT_RELIEF', '06', '1년6개월~2년', '1.5yr-2yr', '감면율 10%', 6, None, 'Y'),
     ]
 
     # =========================================================================
     # Sheet 7: MST_ERROR_CODE (오류코드 정의)
     # =========================================================================
+    # [CRITICAL FIX] 수동 66건(47% 커버리지) → RULE_DATA 기반 자동 생성(100% 커버리지)
+    # - 기존 문제: VAT-L004의 RULE_ID가 VAT-L008로 잘못 매핑, 74건 누락
+    # - 해결: VALIDATION_RULE과 1:1 자동 매핑으로 참조 무결성 보장
     ERR_HEADERS = [
         'ERROR_CD', 'RULE_ID', 'ERROR_MSG_TEMPLATE', 'FIX_GUIDE_TEMPLATE',
         'LEGAL_BASIS', 'PENALTY_INFO', 'USE_YN'
     ]
-    ERR_DATA = [
-        # VAT 오류코드 (23건)
-        ('VAT-F001', 'VAT-F001', '파일 확장자가 .101/.102이 아닙니다', '부가세 파일 확장자 확인', None, None, 'Y'),
-        ('VAT-F002', 'VAT-F002', '레코드 길이 오류 (기대:{expected}, 실제:{actual})', '레코드 길이 규격 수정', None, None, 'Y'),
-        ('VAT-F003', 'VAT-F003', '숫자 필드에 문자 포함', '숫자 필드 문자 제거', None, None, 'Y'),
-        ('VAT-S001', 'VAT-S001', 'A/B/Z 레코드 누락', '필수 레코드 추가', None, None, 'Y'),
-        ('VAT-S002', 'VAT-S002', '레코드 순서 오류', 'A→B~Y→Z 순서 배치', None, None, 'Y'),
-        ('VAT-S003', 'VAT-S003', 'Z레코드 건수 불일치', 'Z레코드 총건수 수정', None, None, 'Y'),
-        ('VAT-S004', 'VAT-S004', 'A/B 레코드 사업자번호 불일치', '사업자번호 일치 확인', None, None, 'Y'),
-        ('VAT-S005', 'VAT-S005', '합계표 갑/을지 쌍 불일치', '갑지/을지 쌍 확인', None, None, 'Y'),
-        ('VAT-C001', 'VAT-C001', '매출세액 불일치 (파일:{actual}, 계산:{expected})', '매출세액=과세표준x10%', '부가가치세법 제30조', '과소신고가산세 10%', 'Y'),
-        ('VAT-C002', 'VAT-C002', '영세율 매출 세액이 0이 아닙니다', '영세율 매출 세액 0 확인', '부가가치세법 제11조', None, 'Y'),
-        ('VAT-C003', 'VAT-C003', '과세표준 합계 불일치', '각 유형별 과세표준 합계 확인', None, None, 'Y'),
-        ('VAT-C010', 'VAT-C010', '공제받을매입세액 합계 불일치', '매입세액 각 항목 합계 확인', '부가가치세법 제37조', None, 'Y'),
-        ('VAT-C050', 'VAT-C050', '납부(환급)세액 계산 오류', '납부세액 산식 확인', None, None, 'Y'),
-        ('VAT-C060', 'VAT-C060', '사업자등록번호 체크디지트 오류', '사업자번호 확인', None, None, 'Y'),
-        ('VAT-L001', 'VAT-L001', '매출합계표와 신고서 금액 불일치', '매출합계표↔신고서 일치', None, None, 'Y'),
-        ('VAT-L002', 'VAT-L002', '매출합계표와 신고서 세액 불일치', '매출합계표↔신고서 세액 일치', None, None, 'Y'),
-        ('VAT-L003', 'VAT-L003', '매입합계표와 신고서 금액 불일치', '매입합계표↔신고서 일치', None, None, 'Y'),
-        ('VAT-L005', 'VAT-L005', '갑지/을지 매수 합계 불일치', '갑지/을지 매수/금액 일치', None, None, 'Y'),
-        ('VAT-L004', 'VAT-L008', '전자/종이 세금계산서 합계 불일치', '전자+종이 세금계산서 합계 확인', None, None, 'Y'),
-        ('VAT-R001', 'VAT-R001', '과세 매출에 영세율 적용', '영세율 요건 확인', '부가가치세법 제11조', None, 'Y'),
-        ('VAT-R002', 'VAT-R002', '간이과세 부가가치율 오적용', '업종별 부가가치율 확인', '부가가치세법 제61조', None, 'Y'),
-        ('VAT-R003', 'VAT-R003', '신용카드발행공제 한도 초과', '연간한도 1,000만원 확인', None, None, 'Y'),
-        ('VAT-R004', 'VAT-R004', '대손세액공제 기간(5년) 초과', '공급일 기준 5년 확인', '부가가치세법 제45조', None, 'Y'),
-        # WHT 오류코드 (25건)
-        ('WHT-F001', 'WHT-F001', '파일 확장자가 .401이 아닙니다', '원천세 파일 확장자 .401 확인', None, None, 'Y'),
-        ('WHT-F002', 'WHT-F002', '레코드 길이 규격 불일치', '레코드 길이 규격 수정', None, None, 'Y'),
-        ('WHT-F003', 'WHT-F003', '숫자 필드에 문자 포함', '숫자 필드 문자 제거', None, None, 'Y'),
-        ('WHT-S001', 'WHT-S001', 'Z레코드 건수 불일치', 'Z레코드 총건수 수정', None, None, 'Y'),
-        ('WHT-S002', 'WHT-S002', '필수 레코드 누락', '필수 레코드 추가', None, None, 'Y'),
-        ('WHT-S003', 'WHT-S003', '사업자번호 레코드간 불일치', '모든 레코드 사업자번호 일치', None, None, 'Y'),
-        ('WHT-C001', 'WHT-C001', '근로소득 소계(A09) 불일치', '근로소득 소계 합산 확인', None, None, 'Y'),
-        ('WHT-C002', 'WHT-C002', '사업소득 소계(A29) 불일치', '사업소득 소계 합산 확인', None, None, 'Y'),
-        ('WHT-C003', 'WHT-C003', '금융소득 소계(A49) 불일치', '금융소득 소계 합산 확인', None, None, 'Y'),
-        ('WHT-C004', 'WHT-C004', '기타소득 소계(A69) 불일치', '기타소득 소계 합산 확인', None, None, 'Y'),
-        ('WHT-C005', 'WHT-C005', '비거주자 소계(A80) 불일치', '비거주자 소계 합산 확인', None, None, 'Y'),
-        ('WHT-C006', 'WHT-C006', '가감계(A90) 합산 오류', '가감계 합산 확인', None, None, 'Y'),
-        ('WHT-C007', 'WHT-C007', '합계(A99) 오류', '최종합계 확인', None, None, 'Y'),
-        ('WHT-C008', 'WHT-C008', '지방소득세 = 소득세x10% 불일치', '지방소득세 계산 확인', None, None, 'Y'),
-        ('WHT-C009', 'WHT-C009', '납부세액 계산 오류', '납부세액 산식 확인', None, None, 'Y'),
-        ('WHT-L001', 'WHT-L001', '신고서 인원 vs 지급명세서 건수 불일치 (근로)', '근로소득 인원수 일치 확인', None, None, 'Y'),
-        ('WHT-L002', 'WHT-L002', '일용근로 인원 교차검증 불일치', '일용근로 인원수 일치 확인', None, None, 'Y'),
-        ('WHT-L003', 'WHT-L003', '사업소득 인원 교차검증 불일치', '사업소득 인원수 일치 확인', None, None, 'Y'),
-        ('WHT-L004', 'WHT-L004', '기타소득 인원 교차검증 불일치', '기타소득 인원수 일치 확인', None, None, 'Y'),
-        ('WHT-L005', 'WHT-L005', '퇴직소득 인원 교차검증 불일치', '퇴직소득 인원수 일치 확인', None, None, 'Y'),
-        ('WHT-L006', 'WHT-L006', '신고서 총지급액 vs 지급명세서 합계 불일치', '총지급액 합계 확인', None, None, 'Y'),
-        ('WHT-Y004', 'WHT-Y004', '연말정산 결정세액 계산 오류', '결정세액 산식 확인', None, None, 'Y'),
-        ('WHT-W001', 'WHT-W001', '일용근로 일급여 15만원 이하 세액=0 확인', '비과세 한도 확인', '소득세법 제47조', None, 'Y'),
-        ('WHT-W002', 'WHT-W002', '사업소득 3% 미적용 건 존재', '원천징수세율 3% 확인', '소득세법 제129조', None, 'Y'),
-        ('WHT-W003', 'WHT-W003', '기타소득 필요경비율 비정상', '필요경비율 60% 확인', '소득세법 제37조', None, 'Y'),
-        # CIT 오류코드 (8건)
-        ('CIT-C001', 'CIT-C001', '당기순이익 불일치 (법인세-1 vs 법인세-2)', '법인세-1/2 당기순이익 일치', '법인세법 시행규칙 별지 제3호', None, 'Y'),
-        ('CIT-C002', 'CIT-C002', '소득금액 계산 오류', '소득금액 산식 확인', '법인세법 제14조', '과소신고가산세 10%', 'Y'),
-        ('CIT-C004', 'CIT-C004', '산출세액 계산 오류', '누진세율 적용 확인', '법인세법 제55조', '과소신고가산세 10%', 'Y'),
-        ('CIT-C009', 'CIT-C009', '최저한세 미달', '최저한세 이상 납부 확인', '조특법 제132조', None, 'Y'),
-        ('CIT-L001', 'CIT-L001', '접대비 한도 초과', '접대비 한도 확인', '법인세법 제25조', None, 'Y'),
-        ('CIT-L002', 'CIT-L002', '기부금 공제한도 초과', '법정/지정 기부금 한도 확인', '법인세법 제24조', None, 'Y'),
-        ('CIT2-E001', 'CIT2-E001', '재무상태표 대차균형 오류', '자산=부채+자본 확인', None, None, 'Y'),
-        ('CIT2-E020', 'CIT2-E020', '법인세-2/1 당기순이익 교차 불일치', '법인세-2와 1 당기순이익 일치', None, None, 'Y'),
-        # INC 오류코드 (6건)
-        ('INC-C002', 'INC-C002', '과세표준 계산 오류', '과세표준 산식 확인', '소득세법 제14조', '과소신고가산세 10%', 'Y'),
-        ('INC-C003', 'INC-C003', '산출세액 계산 오류', '8단계 누진세율 확인', '소득세법 제55조', None, 'Y'),
-        ('INC-L001', 'INC-L001', '인적공제 대상 소득요건 초과', '부양가족 소득 100만 이하 확인', '소득세법 제50조', None, 'Y'),
-        ('INC-L003', 'INC-L003', '부녀자/한부모공제 중복 적용', '중복 불가 확인', '소득세법 제51조', None, 'Y'),
-        ('INC-L005', 'INC-L005', '소득공제 종합한도(2,500만원) 초과', '종합한도 확인', '조특법 제132조의2', None, 'Y'),
-        ('INC-T004', 'INC-T004', '표준/특별세액공제 동시 적용', '중복 불가 확인', '소득세법 제59조의4', None, 'Y'),
-        # CGT 오류코드 (4건)
-        ('CGT-C001', 'CGT-C001', '양도차익 계산 오류', '양도차익 산식 확인', '소득세법 제95조', None, 'Y'),
-        ('CGT-C005', 'CGT-C005', '양도소득세 중과세율 적용 오류', '중과세율 확인', '소득세법 제104조', None, 'Y'),
-        ('CGT-C006', 'CGT-C006', '양도소득 기본공제 초과', '연간 250만원 한도 확인', '소득세법 제103조', None, 'Y'),
-        ('CGT-C007', 'CGT-C007', '양도소득세 누진세율 오적용', '8단계 누진세율 확인', '소득세법 제104조', None, 'Y'),
-    ]
+    ERR_DATA = []
+    for rule in RULE_DATA:
+        # rule = (RULE_ID, TAX_TYPE_CD, RULE_NM, RULE_LEVEL, SEVERITY,
+        #         RULE_FORMULA, LEGAL_BASIS, PENALTY_REF, ERROR_MSG,
+        #         FIX_GUIDE, APPLY_START_DT, APPLY_END_DT, USE_YN)
+        rid = rule[0]       # RULE_ID → ERROR_CD (1:1)
+        err_msg = rule[8]   # ERROR_MSG → ERROR_MSG_TEMPLATE
+        fix_guide = rule[9] # FIX_GUIDE → FIX_GUIDE_TEMPLATE
+        legal = rule[6]     # LEGAL_BASIS
+        penalty = rule[7]   # PENALTY_REF → PENALTY_INFO
+        ERR_DATA.append((rid, rid, err_msg, fix_guide, legal, penalty, 'Y'))
 
     # =========================================================================
     # Sheet 8: MST_RECORD_LAYOUT (레코드 레이아웃)
@@ -958,6 +964,70 @@ def main():
         top=Side(style='thin'), bottom=Side(style='thin')
     )
 
+    # =========================================================================
+    # Sheet 10: DATA_SOURCES (테이블별 데이터 출처)
+    # =========================================================================
+    SOURCE_HEADERS = [
+        'TABLE_NAME', 'TABLE_NM_KO', 'ROW_COUNT', 'PRIMARY_SOURCE',
+        'SECONDARY_SOURCE', 'DATA_DESCRIPTION', 'UPDATE_FREQUENCY', 'NOTES'
+    ]
+    SOURCE_DATA = [
+        ('MST_TAX_TYPE', '세목 마스터', len(TAX_TYPE_DATA),
+         '국세청 전자신고 파일설명서 (.doc/.docx/.pdf) - 파일 확장자별 세목 체계',
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md §2.2 파일 확장자 체계',
+         '부가세(.101/.102), 법인세(.201), 종합소득세(.301), 원천세(.401), 양도세(.501), 증여세(.601), 상속세(.701) 총 7개 세목',
+         '세목 추가 시 (거의 없음)',
+         '증여세/상속세는 USE_YN=N (미지원). 인코딩은 EUC-KR 기본, UTF-8 전환 예정'),
+        ('MST_FORM_CODE', '서식코드 마스터', len(FORM_CODE_DATA),
+         '국세청 전자신고 파일설명서 (refer-doc/1~9번 .doc/.docx/.pdf)',
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md §4.4 세목별 전문 검증 모듈',
+         '세목별 서식코드 체계: VAT(V101xxx/V102xxx), CIT(CIT01xx/CIT02xx), INC(INC01xx), WHT(A304xxx/A305xxx), CGT(CGT01xx)',
+         '세법 개정/서식 변경 시 (연 1~2회)',
+         '레코드타입(A~Z)과 1:1 매핑. 적용시작일(APPLY_START_DT) 기준 버전 관리'),
+        ('MST_VALIDATION_RULE', '검증 규칙 마스터', len(RULE_DATA),
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md §4.2~§4.4 (FR-001~FR-003)',
+         'docs/02-design/features/tax-file-error-validation.design.md §3.1.2 (ValidationRule Entity)',
+         'L1(형식)~L5(법규) 5단계 검증규칙. 세목별 검증ID 체계: VAT-F/S/C/L/R, CIT-F/S/C/L, INC-F/S/C/L/T, WHT-F/S/C/L/W/Y, CGT-F/S/C',
+         '세법 개정/검증 로직 추가 시 (연 1~2회)',
+         '법적근거(LEGAL_BASIS), 가산세참조(PENALTY_REF) 포함. RULE_FORMULA는 의사코드 형태'),
+        ('MST_TAX_RATE', '세율표', len(RATE_DATA),
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md §4.4.2.4(법인세율), §4.4.3.3(소득세율)',
+         '관련 세법: 법인세법 제55조, 소득세법 제55조, 부가가치세법 제30조, 소득세법 제104조(양도세)',
+         'VAT 기본10%, CIT 4구간(9~24%), CIT 최저한세(7~17%), INC 8구간(6~45%), CGT 특별세율(20~70%)',
+         '세법 개정 시 (연 1회, 귀속연도별 관리)',
+         'TAX_YEAR 기준 연도별 관리. BRACKET_SEQ로 구간 순서. DEDUCTION_AMT=누진공제액'),
+        ('MST_DEDUCTION_LIMIT', '공제/감면 한도표', len(DED_DATA),
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md §4.4.1.7~9(VAT), §4.4.2.5~9(CIT), §4.4.3.4~8(INC)',
+         '관련 세법: 부가가치세법 제42/45조, 법인세법 제13/24/25/34조, 소득세법 제50/51/59조, 조특법 제126/132조',
+         'VAT(의제매입/신용카드공제 10건), CIT(접대비/기부금/결손금 7건), INC(인적공제/세액공제 17건)',
+         '세법 개정 시 (연 1회, 귀속연도별 관리)',
+         'LIMIT_AMT=금액한도, LIMIT_RATE=비율한도. CONDITION_DESC에 적용조건 기술'),
+        ('MST_CODE', '공통코드', len(CODE_DATA),
+         'docs/02-design/features/tax-file-error-validation.design.md §3.1.2 (Entity 필드 정의)',
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md (전체 문서에서 추출)',
+         '20개 코드그룹: SEVERITY(4), RULE_LEVEL(5), RPT_TYPE(4), TAX_PERIOD(4), CORP_TYPE(5), BAD_DEBT(5), DATA_TYPE(3), REQUIRED_TYPE(3), INC_TYPE(28), SIMPLE_VAT_BIZ(8), REQUEST_STATUS(5), FILE_STATUS(6), OVERALL_RESULT(2), LOG_LEVEL(3), LOG_PHASE(8), CHANGE_TYPE(3), REPORT_FORMAT(4), ENCODING(2), PENALTY_TYPE(7), AMENDMENT_RELIEF(6)',
+         '코드 추가/변경 시 (수시)',
+         'CODE_GRP+CODE_CD 복합키. SORT_ORDER로 정렬. PARENT_CD로 계층 표현 가능'),
+        ('MST_ERROR_CODE', '오류코드 정의', len(ERR_DATA),
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md §4.4.1.10(VAT), §4.4.4.9(WHT)',
+         'docs/02-design/features/tax-file-error-validation.design.md §3.1.2 (ErrorCode Entity)',
+         'MST_VALIDATION_RULE과 1:1 자동 매핑 (RULE_DATA 기반 생성). 오류메시지 템플릿({actual}/{expected} 치환), 수정가이드, 법적근거, 가산세정보 포함',
+         '검증 규칙 추가/변경 시 (자동 동기화)',
+         'ERROR_CD = RULE_ID와 1:1 동일 체계. RULE_DATA에서 자동 생성하여 참조 무결성 100% 보장'),
+        ('MST_RECORD_LAYOUT', '레코드 레이아웃', len(LAYOUT_DATA),
+         '국세청 전자신고 파일설명서 (refer-doc/1~9번 .doc/.docx/.pdf)',
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md §4.2.3 레코드 레이아웃 메타데이터',
+         'MST_FORM_CODE와 1:1 매핑. 레코드타입(A~Z), 레코드길이(바이트), 필수여부 정의',
+         '파일규격 변경 시 (연 1~2회)',
+         'RECORD_LEN은 현재 기본값(A:300,B:1500,C~U:500,Z:200). 실제값은 파일설명서(.doc) 파싱 후 업데이트 필요'),
+        ('MST_FIELD_LAYOUT', '필드 레이아웃', len(FIELD_DATA),
+         '국세청 전자신고 파일설명서 (refer-doc/3. 전자신고_파일설명서(부가가치세).doc)',
+         'refer-doc/전자신고_파일오류검증_핵심기능_요구사항.md §4.2.3, §4.4.1.2',
+         'VAT A레코드(9개 필드), B레코드(11개 필드) 샘플 데이터. 필드명/시작위치/길이/타입/필수유형/허용값/검증타입 정의',
+         '파일규격 변경 시 (연 1~2회)',
+         '현재 VAT A/B 레코드만 샘플. 전체 세목/레코드의 필드 레이아웃은 파일설명서(.doc) 바이너리 파싱 후 대량 구축 필요'),
+    ]
+
     sheets_config = [
         ('TAX_TYPE', TAX_TYPE_HEADERS, TAX_TYPE_DATA),
         ('FORM_CODE', FORM_CODE_HEADERS, FORM_CODE_DATA),
@@ -968,6 +1038,7 @@ def main():
         ('ERROR_CODE', ERR_HEADERS, ERR_DATA),
         ('RECORD_LAYOUT', LAYOUT_HEADERS, LAYOUT_DATA),
         ('FIELD_LAYOUT', FIELD_HEADERS, FIELD_DATA),
+        ('DATA_SOURCES', SOURCE_HEADERS, SOURCE_DATA),
     ]
 
     for idx, (sheet_name, headers, data) in enumerate(sheets_config):
